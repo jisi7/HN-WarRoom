@@ -1,0 +1,448 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>HN War Room</title>
+<script src="https://unpkg.com/react@18/umd/react.production.min.js"></script>
+<script src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js"></script>
+<script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=DM+Mono:wght@300;400;500&family=DM+Sans:wght@300;400;500;600&display=swap');
+
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+  :root {
+    --brown: #A3988B;
+    --brown-dark: #8a7e72;
+    --brown-light: #C4B8AD;
+    --cream: #E8E3DC;
+    --cream-dark: #D4CEC6;
+    --charcoal: #2C2A27;
+    --charcoal-mid: #4a4744;
+    --charcoal-light: #7a7570;
+    --white: #FFFFFF;
+    --green: #048142;
+    --green-light: #e4f2eb;
+    --red: #D2042D;
+    --red-light: #fce8ec;
+    --blue: #24418F;
+    --blue-light: #e8ecf8;
+    --amber: #C8893A;
+    --amber-light: #fdf3e3;
+    --gold: #C9A84C;
+  }
+
+  html, body { height: 100%; background: #f0ebe3; font-family: 'DM Sans', sans-serif; color: var(--charcoal); }
+
+  /* HEADER */
+  .header {
+    background: var(--brown);
+    padding: 0 28px;
+    height: 56px;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    position: sticky;
+    top: 0;
+    z-index: 100;
+    border-bottom: 1px solid var(--brown-dark);
+  }
+  .header-left { display: flex; align-items: center; gap: 12px; }
+  .header-logo { font-size: 13px; font-weight: 600; color: white; letter-spacing: 0.12em; text-transform: uppercase; }
+  .header-divider { width: 1px; height: 20px; background: rgba(255,255,255,0.3); }
+  .header-title { font-size: 13px; color: rgba(255,255,255,0.7); font-weight: 300; letter-spacing: 0.06em; }
+  .header-right { display: flex; align-items: center; gap: 16px; }
+  .pulse-dot { width: 7px; height: 7px; border-radius: 50%; background: #6ee08a; position: relative; }
+  .pulse-dot::after { content: ''; position: absolute; inset: -3px; border-radius: 50%; background: #6ee08a; opacity: 0.3; animation: pulse 2s infinite; }
+  @keyframes pulse { 0%,100% { transform: scale(1); opacity: 0.3; } 50% { transform: scale(1.6); opacity: 0; } }
+  .header-status { font-size: 11px; color: rgba(255,255,255,0.6); font-family: 'DM Mono', monospace; }
+  .refresh-btn { background: rgba(255,255,255,0.12); border: 1px solid rgba(255,255,255,0.2); color: white; font-size: 11px; padding: 5px 12px; border-radius: 4px; cursor: pointer; font-family: 'DM Sans', sans-serif; transition: background 0.15s; }
+  .refresh-btn:hover { background: rgba(255,255,255,0.2); }
+
+  /* LAYOUT */
+  .main { padding: 24px 28px; max-width: 1400px; margin: 0 auto; }
+
+  /* METRICS ROW */
+  .metrics-row { display: grid; grid-template-columns: repeat(4, 1fr); gap: 12px; margin-bottom: 20px; }
+  .metric-card { background: white; border-radius: 10px; padding: 16px 18px; border: 1px solid rgba(163,152,139,0.2); position: relative; overflow: hidden; }
+  .metric-card::before { content: ''; position: absolute; top: 0; left: 0; right: 0; height: 2px; }
+  .metric-card.mc-brown::before { background: var(--brown); }
+  .metric-card.mc-green::before { background: var(--green); }
+  .metric-card.mc-blue::before { background: var(--blue); }
+  .metric-card.mc-amber::before { background: var(--amber); }
+  .metric-label { font-size: 10px; text-transform: uppercase; letter-spacing: 0.1em; color: var(--charcoal-light); font-weight: 500; margin-bottom: 6px; }
+  .metric-value { font-size: 28px; font-weight: 600; color: var(--charcoal); line-height: 1; margin-bottom: 4px; }
+  .metric-sub { font-size: 11px; color: var(--charcoal-light); }
+
+  /* GRID */
+  .grid-2 { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; margin-bottom: 16px; }
+  .grid-3 { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 16px; margin-bottom: 16px; }
+  .grid-full { margin-bottom: 16px; }
+
+  /* PANEL */
+  .panel { background: white; border-radius: 10px; border: 1px solid rgba(163,152,139,0.2); overflow: hidden; }
+  .panel-head { padding: 12px 16px; border-bottom: 1px solid rgba(163,152,139,0.15); display: flex; align-items: center; justify-content: space-between; background: #faf9f7; }
+  .panel-title { font-size: 10px; text-transform: uppercase; letter-spacing: 0.1em; color: var(--charcoal-light); font-weight: 500; }
+  .panel-body { padding: 0; }
+  .panel-empty { padding: 24px 16px; text-align: center; color: var(--charcoal-light); font-size: 13px; }
+
+  /* TABLE ROWS */
+  .t-row { display: flex; align-items: center; padding: 10px 16px; border-bottom: 1px solid rgba(163,152,139,0.1); gap: 10px; transition: background 0.1s; }
+  .t-row:last-child { border-bottom: none; }
+  .t-row:hover { background: #faf9f7; }
+  .t-row-main { flex: 1; min-width: 0; }
+  .t-row-title { font-size: 13px; color: var(--charcoal); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; margin-bottom: 2px; }
+  .t-row-sub { font-size: 11px; color: var(--charcoal-light); }
+
+  /* BADGES */
+  .badge { font-size: 10px; font-weight: 500; padding: 2px 8px; border-radius: 20px; white-space: nowrap; flex-shrink: 0; }
+  .b-green { background: var(--green-light); color: #054d27; }
+  .b-amber { background: var(--amber-light); color: #6b4000; }
+  .b-blue { background: var(--blue-light); color: #152660; }
+  .b-red { background: var(--red-light); color: #7a0017; }
+  .b-gray { background: var(--cream); color: var(--charcoal-mid); }
+  .b-brown { background: #f0ebe3; color: var(--brown-dark); }
+
+  /* PRODUCT PILLS */
+  .pill { font-size: 10px; font-weight: 500; padding: 2px 7px; border-radius: 20px; flex-shrink: 0; }
+  .pill-cr { background: var(--red-light); color: #7a0017; }
+  .pill-fo { background: var(--blue-light); color: #152660; }
+  .pill-vd { background: var(--amber-light); color: #6b4000; }
+  .pill-gen { background: var(--cream); color: var(--charcoal-mid); }
+
+  /* AGENT STATUS */
+  .agent-row { display: flex; align-items: center; gap: 12px; padding: 11px 16px; border-bottom: 1px solid rgba(163,152,139,0.1); }
+  .agent-row:last-child { border-bottom: none; }
+  .agent-dot { width: 8px; height: 8px; border-radius: 50%; flex-shrink: 0; }
+  .dot-green { background: #2ecc71; }
+  .dot-amber { background: #f39c12; }
+  .dot-gray { background: #ccc; }
+  .dot-red { background: var(--red); }
+  .agent-name { font-size: 13px; font-weight: 500; color: var(--charcoal); flex: 1; }
+  .agent-meta { font-size: 11px; color: var(--charcoal-light); text-align: right; font-family: 'DM Mono', monospace; }
+
+  /* PRIORITY BARS */
+  .priority-row { display: flex; align-items: center; gap: 10px; padding: 9px 16px; border-bottom: 1px solid rgba(163,152,139,0.1); }
+  .priority-row:last-child { border-bottom: none; }
+  .priority-label { font-size: 12px; color: var(--charcoal); width: 80px; flex-shrink: 0; }
+  .bar-wrap { flex: 1; height: 4px; background: var(--cream); border-radius: 2px; overflow: hidden; }
+  .bar-fill { height: 4px; border-radius: 2px; transition: width 0.6s ease; }
+  .priority-count { font-size: 11px; color: var(--charcoal-light); width: 60px; text-align: right; font-family: 'DM Mono', monospace; }
+
+  /* LOADING */
+  .loading { display: flex; align-items: center; justify-content: center; padding: 32px; gap: 8px; color: var(--charcoal-light); font-size: 13px; }
+  .spinner { width: 16px; height: 16px; border: 2px solid var(--cream-dark); border-top-color: var(--brown); border-radius: 50%; animation: spin 0.8s linear infinite; }
+  @keyframes spin { to { transform: rotate(360deg); } }
+
+  /* KEYWORD NUM */
+  .kw-num { font-size: 11px; color: var(--charcoal-light); width: 18px; flex-shrink: 0; font-family: 'DM Mono', monospace; }
+
+  /* FOOTER */
+  .footer { padding: 20px 0 8px; text-align: center; font-size: 11px; color: var(--charcoal-light); font-family: 'DM Mono', monospace; letter-spacing: 0.04em; }
+
+  /* TABS */
+  .tab-bar { display: flex; gap: 2px; background: var(--cream); padding: 3px; border-radius: 7px; margin-bottom: 16px; }
+  .tab { flex: 1; padding: 7px 12px; text-align: center; font-size: 12px; font-weight: 500; color: var(--charcoal-light); border-radius: 5px; cursor: pointer; transition: all 0.15s; border: none; background: transparent; }
+  .tab.active { background: white; color: var(--charcoal); box-shadow: 0 1px 3px rgba(0,0,0,0.08); }
+
+  @media (max-width: 768px) {
+    .main { padding: 16px; }
+    .metrics-row { grid-template-columns: repeat(2, 1fr); }
+    .grid-2, .grid-3 { grid-template-columns: 1fr; }
+    .header { padding: 0 16px; }
+  }
+</style>
+</head>
+<body>
+<div id="root"></div>
+<script type="text/babel">
+const { createClient } = supabase;
+const { useState, useEffect, useCallback } = React;
+
+const SUPABASE_URL = 'https://ykzkivpcojjzmbbnuewj.supabase.co';
+const SUPABASE_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InlremtpdnBjb2pqem1iYm51ZXdqIiwicm9sZSI6ImFub24iLCJpYXQiOjE3Nzc1NzUxODAsImV4cCI6MjA5MzE1MTE4MH0.V4cEKUNZXoLXTDw0zhMRN8LIlBfEl_TChHHzKkGxo2w';
+
+const db = createClient(SUPABASE_URL, SUPABASE_KEY);
+
+const productLabel = (p) => ({ creatine: 'Creatine', focase: 'Focase', vitamin_d: 'D3/K2', general: 'General' }[p] || p);
+const productPill = (p) => ({ creatine: 'pill-cr', focase: 'pill-fo', vitamin_d: 'pill-vd', general: 'pill-gen' }[p] || 'pill-gen');
+const statusBadge = (s) => ({ published: 'b-green', draft: 'b-gray', failed: 'b-red', queued: 'b-brown', in_progress: 'b-amber', skipped: 'b-gray', pending: 'b-amber', approved: 'b-green', scheduled: 'b-blue', posted: 'b-green', rejected: 'b-red' }[s] || 'b-gray');
+const priorityBadge = (p) => ({ high: 'b-green', medium: 'b-amber', low: 'b-gray' }[p] || 'b-gray');
+const agentDot = (s) => ({ completed: 'dot-green', running: 'dot-amber', failed: 'dot-red', ready: 'dot-amber', waiting: 'dot-gray' }[s] || 'dot-gray');
+
+const fmt = (d) => d ? new Date(d).toLocaleDateString('en-US', { month: 'short', day: 'numeric' }) : '—';
+const fmtTime = (d) => d ? new Date(d).toLocaleString('en-US', { month: 'short', day: 'numeric', hour: 'numeric', minute: '2-digit' }) : 'Never';
+
+function App() {
+  const [tab, setTab] = useState('overview');
+  const [data, setData] = useState({ articles: [], keywords: [], drafts: [], agents: [], performance: [] });
+  const [loading, setLoading] = useState(true);
+  const [lastRefresh, setLastRefresh] = useState(null);
+
+  const load = useCallback(async () => {
+    setLoading(true);
+    try {
+      const [art, kw, dr, ag, perf] = await Promise.all([
+        db.from('articles').select('*').order('created_at', { ascending: false }).limit(50),
+        db.from('keywords').select('*').order('priority').order('created_at'),
+        db.from('social_drafts').select('*, articles(title)').order('created_at', { ascending: false }).limit(20),
+        db.from('agent_runs').select('*').order('created_at', { ascending: false }).limit(20),
+        db.from('performance').select('*, articles(title, product)').order('date', { ascending: false }).limit(30),
+      ]);
+      setData({
+        articles: art.data || [],
+        keywords: kw.data || [],
+        drafts: dr.data || [],
+        agents: ag.data || [],
+        performance: perf.data || [],
+      });
+      setLastRefresh(new Date());
+    } catch(e) { console.error(e); }
+    setLoading(false);
+  }, []);
+
+  useEffect(() => { load(); }, [load]);
+
+  const published = data.articles.filter(a => a.status === 'published').length;
+  const queued = data.keywords.filter(k => k.status === 'queued').length;
+  const pendingDrafts = data.drafts.filter(d => d.status === 'pending').length;
+  const totalTraffic = data.performance.reduce((s, p) => s + (p.organic_traffic || 0), 0);
+
+  // Derive last agent run per agent type
+  const agentTypes = ['Content Agent', 'Keyword Agent', 'Repurpose Agent', 'Optimization Agent'];
+  const agentStatus = agentTypes.map(name => {
+    const runs = data.agents.filter(a => a.agent_name === name);
+    const last = runs[0];
+    return { name, last, status: last ? last.status : (name === 'Optimization Agent' ? 'waiting' : 'ready') };
+  });
+
+  // Product breakdown
+  const productCounts = { creatine: 0, focase: 0, vitamin_d: 0 };
+  data.articles.forEach(a => { if (productCounts[a.product] !== undefined) productCounts[a.product]++; });
+  const maxProd = Math.max(...Object.values(productCounts), 1);
+
+  return (
+    <div>
+      <div className="header">
+        <div className="header-left">
+          <span className="header-logo">Holistic Nutrition</span>
+          <div className="header-divider"/>
+          <span className="header-title">War Room</span>
+        </div>
+        <div className="header-right">
+          <div className="pulse-dot"/>
+          <span className="header-status">
+            {loading ? 'syncing...' : `updated ${lastRefresh ? lastRefresh.toLocaleTimeString('en-US', {hour:'numeric',minute:'2-digit'}) : '—'}`}
+          </span>
+          <button className="refresh-btn" onClick={load}>↺ Refresh</button>
+        </div>
+      </div>
+
+      <div className="main">
+
+        <div className="tab-bar">
+          {['overview','content','keywords','social','agents'].map(t => (
+            <button key={t} className={`tab${tab===t?' active':''}`} onClick={() => setTab(t)}>
+              {t.charAt(0).toUpperCase()+t.slice(1)}
+            </button>
+          ))}
+        </div>
+
+        {/* METRICS always visible */}
+        <div className="metrics-row">
+          <div className="metric-card mc-brown">
+            <div className="metric-label">Published</div>
+            <div className="metric-value">{published}</div>
+            <div className="metric-sub">articles live on Shopify</div>
+          </div>
+          <div className="metric-card mc-green">
+            <div className="metric-label">Keywords Queued</div>
+            <div className="metric-value">{queued}</div>
+            <div className="metric-sub">ready to generate</div>
+          </div>
+          <div className="metric-card mc-blue">
+            <div className="metric-label">Social Drafts</div>
+            <div className="metric-value">{pendingDrafts}</div>
+            <div className="metric-sub">awaiting approval</div>
+          </div>
+          <div className="metric-card mc-amber">
+            <div className="metric-label">Organic Traffic</div>
+            <div className="metric-value">{totalTraffic > 0 ? totalTraffic.toLocaleString() : '—'}</div>
+            <div className="metric-sub">total tracked visits</div>
+          </div>
+        </div>
+
+        {tab === 'overview' && (
+          <>
+            <div className="grid-2">
+              {/* Agent Status */}
+              <div className="panel">
+                <div className="panel-head"><span className="panel-title">Agent Status</span></div>
+                <div className="panel-body">
+                  {agentStatus.map(a => (
+                    <div className="agent-row" key={a.name}>
+                      <div className={`agent-dot ${agentDot(a.status)}`}/>
+                      <span className="agent-name">{a.name}</span>
+                      <div className="agent-meta">
+                        {a.last ? fmtTime(a.last.created_at) : (a.name === 'Optimization Agent' ? 'needs 60d data' : 'not yet run')}
+                        {a.last && <><br/><span style={{color: a.status==='completed'?'#048142':a.status==='failed'?'#D2042D':'#C8893A'}}>{a.status}</span></>}
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              </div>
+
+              {/* Content by product */}
+              <div className="panel">
+                <div className="panel-head"><span className="panel-title">Content by Product</span></div>
+                <div className="panel-body">
+                  {[['creatine','Creatine','#D2042D'],['focase','Focase','#24418F'],['vitamin_d','Vitamin D3/K2','#C8893A']].map(([key,label,color]) => (
+                    <div className="priority-row" key={key}>
+                      <span className="priority-label">{label}</span>
+                      <div className="bar-wrap">
+                        <div className="bar-fill" style={{width:`${(productCounts[key]/maxProd)*100}%`, background:color}}/>
+                      </div>
+                      <span className="priority-count">{productCounts[key]} article{productCounts[key]!==1?'s':''}</span>
+                    </div>
+                  ))}
+                  <div className="priority-row">
+                    <span className="priority-label" style={{color:'var(--charcoal-light)',fontSize:'11px'}}>Total published</span>
+                    <div className="bar-wrap"/>
+                    <span className="priority-count">{published}</span>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            {/* Recent articles */}
+            <div className="grid-full panel">
+              <div className="panel-head"><span className="panel-title">Recent Articles</span></div>
+              <div className="panel-body">
+                {loading ? <div className="loading"><div className="spinner"/><span>Loading...</span></div>
+                : data.articles.length === 0
+                ? <div className="panel-empty">No articles yet. The content agent will populate this once running.</div>
+                : data.articles.slice(0,8).map(a => (
+                  <div className="t-row" key={a.id}>
+                    <span className="kw-num">{data.articles.indexOf(a)+1}</span>
+                    <div className="t-row-main">
+                      <div className="t-row-title">{a.title}</div>
+                      <div className="t-row-sub">{fmt(a.published_at || a.created_at)} · {a.word_count ? `${a.word_count.toLocaleString()} words` : 'word count pending'}</div>
+                    </div>
+                    <span className={`pill ${productPill(a.product)}`}>{productLabel(a.product)}</span>
+                    <span className={`badge ${statusBadge(a.status)}`}>{a.status}</span>
+                  </div>
+                ))}
+              </div>
+            </div>
+          </>
+        )}
+
+        {tab === 'content' && (
+          <div className="grid-full panel">
+            <div className="panel-head"><span className="panel-title">All Articles</span></div>
+            <div className="panel-body">
+              {loading ? <div className="loading"><div className="spinner"/><span>Loading...</span></div>
+              : data.articles.length === 0
+              ? <div className="panel-empty">No articles yet.</div>
+              : data.articles.map((a,i) => (
+                <div className="t-row" key={a.id}>
+                  <span className="kw-num">{i+1}</span>
+                  <div className="t-row-main">
+                    <div className="t-row-title">{a.title}</div>
+                    <div className="t-row-sub">{a.keyword} · {fmt(a.published_at || a.created_at)}</div>
+                  </div>
+                  {a.shopify_url && <a href={a.shopify_url} target="_blank" style={{fontSize:'11px',color:'var(--brown)',textDecoration:'none',flexShrink:0}}>↗ View</a>}
+                  <span className={`pill ${productPill(a.product)}`}>{productLabel(a.product)}</span>
+                  <span className={`badge ${statusBadge(a.status)}`}>{a.status}</span>
+                </div>
+              ))}
+            </div>
+          </div>
+        )}
+
+        {tab === 'keywords' && (
+          <div className="grid-full panel">
+            <div className="panel-head">
+              <span className="panel-title">Keyword Queue</span>
+              <span style={{fontSize:'11px',color:'var(--charcoal-light)'}}>{queued} queued · {data.keywords.length} total</span>
+            </div>
+            <div className="panel-body">
+              {loading ? <div className="loading"><div className="spinner"/><span>Loading...</span></div>
+              : data.keywords.map((k,i) => (
+                <div className="t-row" key={k.id}>
+                  <span className="kw-num">{i+1}</span>
+                  <div className="t-row-main">
+                    <div className="t-row-title">{k.keyword}</div>
+                    <div className="t-row-sub">{k.search_demand ? `${k.search_demand} demand` : ''}{k.notes ? ` · ${k.notes}` : ''}</div>
+                  </div>
+                  <span className={`pill ${productPill(k.product)}`}>{productLabel(k.product)}</span>
+                  <span className={`badge ${priorityBadge(k.priority)}`}>{k.priority}</span>
+                  <span className={`badge ${statusBadge(k.status)}`}>{k.status}</span>
+                </div>
+              ))}
+            </div>
+          </div>
+        )}
+
+        {tab === 'social' && (
+          <div className="grid-full panel">
+            <div className="panel-head">
+              <span className="panel-title">Social Drafts</span>
+              <span style={{fontSize:'11px',color:'var(--charcoal-light)'}}>{pendingDrafts} pending approval</span>
+            </div>
+            <div className="panel-body">
+              {loading ? <div className="loading"><div className="spinner"/><span>Loading...</span></div>
+              : data.drafts.length === 0
+              ? <div className="panel-empty">No social drafts yet. The repurpose agent will queue them here after articles are published.</div>
+              : data.drafts.map(d => (
+                <div className="t-row" key={d.id}>
+                  <div className="t-row-main">
+                    <div className="t-row-title">{d.articles?.title || 'Untitled'}</div>
+                    <div className="t-row-sub">{d.platform} · {d.content_type} · {fmt(d.scheduled_at || d.created_at)}</div>
+                  </div>
+                  <span className={`badge ${statusBadge(d.status)}`}>{d.status}</span>
+                </div>
+              ))}
+            </div>
+          </div>
+        )}
+
+        {tab === 'agents' && (
+          <>
+            <div className="grid-full panel" style={{marginBottom:'16px'}}>
+              <div className="panel-head"><span className="panel-title">Agent Run History</span></div>
+              <div className="panel-body">
+                {loading ? <div className="loading"><div className="spinner"/><span>Loading...</span></div>
+                : data.agents.length === 0
+                ? <div className="panel-empty">No agent runs yet. Once agents are deployed they log every run here.</div>
+                : data.agents.map(a => (
+                  <div className="t-row" key={a.id}>
+                    <div className={`agent-dot ${agentDot(a.status)}`}/>
+                    <div className="t-row-main">
+                      <div className="t-row-title">{a.agent_name}</div>
+                      <div className="t-row-sub">{fmtTime(a.created_at)}{a.message ? ` · ${a.message}` : ''}{a.duration_seconds ? ` · ${a.duration_seconds}s` : ''}</div>
+                    </div>
+                    {a.articles_processed > 0 && <span className="badge b-blue">{a.articles_processed} articles</span>}
+                    <span className={`badge ${statusBadge(a.status)}`}>{a.status}</span>
+                  </div>
+                ))}
+              </div>
+            </div>
+          </>
+        )}
+
+        <div className="footer">
+          holistic nutrition · war room · {lastRefresh ? `last sync ${lastRefresh.toLocaleTimeString()}` : 'connecting...'}
+        </div>
+
+      </div>
+    </div>
+  );
+}
+
+ReactDOM.createRoot(document.getElementById('root')).render(<App/>);
+</script>
+</body>
+</html>
