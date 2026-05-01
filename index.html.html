@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>HN War Room</title>
+<title>HN Situation Ops Center</title>
 <script src="https://unpkg.com/react@18/umd/react.production.min.js"></script>
 <script src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js"></script>
 <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
@@ -229,7 +229,7 @@ function App() {
         <div className="header-left">
           <span className="header-logo">Holistic Nutrition</span>
           <div className="header-divider"/>
-          <span className="header-title">War Room</span>
+          <span className="header-title">Situation Ops Center</span>
         </div>
         <div className="header-right">
           <div className="pulse-dot"/>
@@ -327,7 +327,11 @@ function App() {
                   <div className="t-row" key={a.id}>
                     <span className="kw-num">{data.articles.indexOf(a)+1}</span>
                     <div className="t-row-main">
-                      <div className="t-row-title">{a.title}</div>
+                      <div className="t-row-title">
+                      {a.shopify_url 
+                        ? <a href={a.shopify_url} target="_blank" style={{color:'var(--color-text-primary)',textDecoration:'none',borderBottom:'1px solid var(--color-border-tertiary)'}}>{a.title}</a>
+                        : a.title}
+                    </div>
                       <div className="t-row-sub">{fmt(a.published_at || a.created_at)} · {a.word_count ? `${a.word_count.toLocaleString()} words` : 'word count pending'}</div>
                     </div>
                     <span className={`pill ${productPill(a.product)}`}>{productLabel(a.product)}</span>
@@ -350,10 +354,14 @@ function App() {
                 <div className="t-row" key={a.id}>
                   <span className="kw-num">{i+1}</span>
                   <div className="t-row-main">
-                    <div className="t-row-title">{a.title}</div>
+                    <div className="t-row-title">
+                      {a.shopify_url 
+                        ? <a href={a.shopify_url} target="_blank" style={{color:'var(--color-text-primary)',textDecoration:'none',borderBottom:'1px solid var(--color-border-tertiary)'}}>{a.title}</a>
+                        : a.title}
+                    </div>
                     <div className="t-row-sub">{a.keyword} · {fmt(a.published_at || a.created_at)}</div>
                   </div>
-                  {a.shopify_url && <a href={a.shopify_url} target="_blank" style={{fontSize:'11px',color:'var(--brown)',textDecoration:'none',flexShrink:0}}>↗ View</a>}
+                  
                   <span className={`pill ${productPill(a.product)}`}>{productLabel(a.product)}</span>
                   <span className={`badge ${statusBadge(a.status)}`}>{a.status}</span>
                 </div>
@@ -434,7 +442,7 @@ function App() {
         )}
 
         <div className="footer">
-          holistic nutrition · war room · {lastRefresh ? `last sync ${lastRefresh.toLocaleTimeString()}` : 'connecting...'}
+          holistic nutrition · situation ops center · {lastRefresh ? `last sync ${lastRefresh.toLocaleTimeString()}` : 'connecting...'}
         </div>
 
       </div>
