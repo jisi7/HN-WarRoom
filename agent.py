@@ -123,62 +123,83 @@ BRAND VOICE:
 - Write like a researcher who genuinely wants the reader to understand their own biology
 - Confident without arrogance. State what evidence supports clearly and cite it. Acknowledge limitations honestly.
 - Never use motivational language, wellness speak, or marketing filler
-- Respect the reader's intelligence — explain mechanisms within fully developed paragraphs
+- Respect the reader's intelligence but make every article self-contained — never assume prior knowledge
+
+CRITICAL FORMATTING PHILOSOPHY:
+Every article must be readable by both a PhD and a first-time supplement buyer. Achieve this by:
+- Mixing developed paragraphs (3-5 sentences) with selective bullet points where lists genuinely aid clarity
+- Never writing more than 3 consecutive long paragraphs without a visual break (subheading, bullet list, or pull quote)
+- Using bullet points for: ingredient comparisons, dosing protocols, population-specific guidance, key study findings
+- Using paragraphs for: mechanism explanations, contextual background, nuanced analysis
+- Each article must be completely self-contained — a new reader learns everything they need without reading previous articles
 
 ARTICLE STRUCTURE (follow exactly, in this order):
 1. Title — research brief style, specific and clinically grounded, not clickbait
-2. Opening quote — from a real peer-reviewed study, institution, or named researcher that establishes the stakes
-3. Introduction — 2-3 developed paragraphs: the problem, why it matters, what this brief covers
-4. What is [X] — foundational section explaining the compound, mechanism, or condition
-5. Evidence & Mechanisms — the core science with inline citations [1] [2] [3]
-6. Clinical Considerations — practical application broken into relevant subpopulations or use cases
-7. Conclusion — synthesizes findings, establishes selection criteria naturally without being promotional
-8. [CTA_PLACEHOLDER]
-9. References — AMA format numbered list
+2. Opening quote — from a real peer-reviewed study, institution, or named researcher
+3. Introduction — 2 paragraphs establishing why this topic matters right now
+4. What is [X]? — foundational section, 2-3 paragraphs, assumes zero prior knowledge. Explains what it is, where it comes from, why it exists in the body or nature
+5. What is [X] used for? — practical applications section using a mix of prose and bullet points covering the primary documented uses
+6. Evidence and Mechanisms — the core science with inline citations [1] [2] [3]. Mix paragraphs explaining mechanisms with bullet points summarizing key study findings
+7. Clinical Considerations — practical guidance broken into subpopulations. Use subheadings within this section (e.g. "For athletes", "For cognitive performance", "Dosing and timing"). Use bullet points liberally here.
+8. How to Choose [X] — a brief selection criteria section (3-5 bullets) covering what to look for: form, dose, purity, excipients, third-party testing
+9. Conclusion — 1-2 paragraphs synthesizing findings
+10. [CTA_PLACEHOLDER]
+11. References — AMA format numbered list
 
-FORMATTING RULES:
-- Fully developed paragraphs only — never single or two-sentence standalone paragraphs
-- Inline citations as bracketed numbers [1] [2] — never author-year in body text
-- No emojis, no bullet points in article body, no callout boxes, no "in plain terms" labels
-- Section headings as plain text (will be wrapped in <h2> tags)
-- Minimum 1400 words, target 1800-2200 words
-- Health claims must use compliant language: "supports", "associated with", "may help", "evidence suggests" — never "treats", "cures", "prevents"
+VISUAL ELEMENTS TO INCLUDE IN EACH SECTION:
+- At least ONE pull quote block per article (a key stat or finding formatted as a standalone quote)
+- At least ONE comparison or summary table in HTML (e.g. "Form vs Bioavailability" or "Loading vs Maintenance dosing")
+- Bullet points in at least 3 sections
+- Subheadings within the Clinical Considerations section
 
-CHART DATA — include this section in your JSON:
-Identify ONE key quantitative finding from the research that would visualize well as a simple bar or comparison chart. Provide the data needed to render it.
+HTML FORMATTING:
+- <h2> for main section headings
+- <h3> for subheadings within sections  
+- <p> for paragraphs
+- <ul><li> for bullet lists
+- <blockquote> for pull quotes with key statistics
+- <table> for comparison tables (use inline styles matching HN brand)
+- Inline citations as bracketed numbers [1] [2]
+- Health claims: "supports", "associated with", "may help", "evidence suggests" — never "treats", "cures", "prevents"
+- Minimum 1600 words, target 2000-2400 words
 
-YOUTUBE SEARCH — include this section in your JSON:
-Suggest ONE specific YouTube search query that would surface a high-quality educational video (researcher, physician, or academic lecture) relevant to this topic. Not a product review, not a supplement brand video.
+CHART DATA:
+Identify ONE key quantitative finding for a bar/comparison chart.
 
-OUTPUT — return ONLY a valid JSON object with exactly these fields:
+YOUTUBE SEARCH:
+Suggest ONE search query for a high-quality educational video (researcher, physician, academic lecture only).
+
+OUTPUT — return ONLY a valid JSON object:
 {
   "title": "...",
-  "photo_prompt": "Cinematic editorial photograph, natural earth tones, [specific scene relevant to article topic]. Warm amber and cream palette, intentional atmospheric lighting, no lab coats, no product bottles, no text.",
+  "photo_prompt": "Cinematic close-up editorial photograph of [specific natural element related to topic — herb, mineral, natural texture]. Square format optimized for Instagram. Natural earth tones, warm amber and green palette, shallow depth of field, atmospheric natural lighting, no text, no lab coats, no product bottles. Style: botanical editorial photography.",
   "meta_title": "... max 55 chars",
   "meta_description": "... max 150 chars",
   "opening_quote": { "text": "...", "source": "..." },
   "sections": [
-    { "heading": "Introduction", "html": "<p>...</p><p>...</p>" },
-    { "heading": "What is X", "html": "<p>...</p>" },
-    { "heading": "Evidence and Mechanisms", "html": "<p>...</p>" },
-    { "heading": "Clinical Considerations", "html": "<p>...</p>" },
+    { "heading": "Introduction", "html": "<p>...</p>" },
+    { "heading": "What is [X]?", "html": "<p>...</p><p>...</p>" },
+    { "heading": "What is [X] Used For?", "html": "<p>...</p><ul><li>...</li></ul>" },
+    { "heading": "Evidence and Mechanisms", "html": "<p>...</p><ul><li>...</li></ul><blockquote>...</blockquote>" },
+    { "heading": "Clinical Considerations", "html": "<h3>...</h3><p>...</p><ul><li>...</li></ul>" },
+    { "heading": "How to Choose [X]", "html": "<ul><li>...</li></ul>" },
     { "heading": "Conclusion", "html": "<p>...</p>" }
   ],
   "chart": {
     "type": "bar",
-    "title": "Chart title here",
+    "title": "...",
     "subtitle": "Source: Author et al., Journal, Year",
-    "labels": ["Label 1", "Label 2", "Label 3"],
+    "labels": ["...", "...", "..."],
     "values": [0.0, 0.0, 0.0],
     "value_suffix": "%",
     "color_highlight_index": 0
   },
-  "youtube_query": "specific search query here",
-  "references": ["[1] Author et al. Title. Journal. Year;Vol:Pages.", "..."],
+  "youtube_query": "...",
+  "references": ["[1] ...", "[2] ..."],
   "word_count": 0
 }
 
-Return ONLY valid JSON. No markdown fences. No preamble. No explanation."""
+Return ONLY valid JSON. No markdown fences. No preamble."""
 
 # ── SUPABASE ─────────────────────────────────────────────────────────────────
 def sb(method, path, **kwargs):
@@ -281,27 +302,41 @@ def generate_hero_image(photo_prompt, product):
 
     # Create a high-quality SVG placeholder branded to HN
     # (Replace this with FLUX/DALL-E API call when you add those keys)
-    svg = f"""<svg xmlns="http://www.w3.org/2000/svg" width="1200" height="600" viewBox="0 0 1200 600">
+    # Wide banner format (1500x500) — 3:1 ratio matching HN article photo style
+    # Repurpose agent will crop to square for Instagram separately
+    svg = f"""<svg xmlns="http://www.w3.org/2000/svg" width="1500" height="500" viewBox="0 0 1500 500">
   <defs>
     <linearGradient id="bg" x1="0%" y1="0%" x2="100%" y2="100%">
       <stop offset="0%" style="stop-color:{HN_CREAM};stop-opacity:1"/>
-      <stop offset="60%" style="stop-color:#d4cec6;stop-opacity:1"/>
-      <stop offset="100%" style="stop-color:{HN_BROWN};stop-opacity:0.4"/>
+      <stop offset="55%" style="stop-color:#ccc5bb;stop-opacity:1"/>
+      <stop offset="100%" style="stop-color:{HN_BROWN};stop-opacity:0.7"/>
     </linearGradient>
     <linearGradient id="accent" x1="0%" y1="0%" x2="100%" y2="0%">
-      <stop offset="0%" style="stop-color:{color};stop-opacity:0.15"/>
+      <stop offset="0%" style="stop-color:{color};stop-opacity:0.18"/>
+      <stop offset="70%" style="stop-color:{color};stop-opacity:0.04"/>
       <stop offset="100%" style="stop-color:{color};stop-opacity:0"/>
     </linearGradient>
+    <linearGradient id="vignette" x1="0%" y1="0%" x2="100%" y2="0%">
+      <stop offset="0%" style="stop-color:#000000;stop-opacity:0.08"/>
+      <stop offset="40%" style="stop-color:#000000;stop-opacity:0"/>
+      <stop offset="100%" style="stop-color:#000000;stop-opacity:0.12"/>
+    </linearGradient>
   </defs>
-  <rect width="1200" height="600" fill="url(#bg)"/>
-  <rect width="1200" height="600" fill="url(#accent)"/>
-  <rect x="0" y="0" width="6" height="600" fill="{color}"/>
-  <rect x="0" y="560" width="1200" height="2" fill="{HN_BROWN}" opacity="0.3"/>
-  <text x="60" y="80" font-family="Georgia, serif" font-size="11" fill="{HN_CHARCOAL}" opacity="0.5" letter-spacing="4">HOLISTIC NUTRITION · RESEARCH BRIEF</text>
-  <text x="60" y="200" font-family="Georgia, serif" font-size="42" fill="{HN_CHARCOAL}" font-weight="400" opacity="0.9">Science you can take.</text>
-  <text x="60" y="580" font-family="Georgia, serif" font-size="10" fill="{HN_CHARCOAL}" opacity="0.4">holisticnutrition.us</text>
-  <circle cx="950" cy="300" r="180" fill="{color}" opacity="0.06"/>
-  <circle cx="1050" cy="150" r="80" fill="{HN_GOLD}" opacity="0.08"/>
+  <rect width="1500" height="500" fill="url(#bg)"/>
+  <rect width="1500" height="500" fill="url(#accent)"/>
+  <rect width="1500" height="500" fill="url(#vignette)"/>
+  <!-- Left accent bar -->
+  <rect x="0" y="0" width="6" height="500" fill="{color}"/>
+  <!-- Decorative organic shapes -->
+  <circle cx="1200" cy="250" r="320" fill="{color}" opacity="0.05"/>
+  <circle cx="1380" cy="80" r="140" fill="{HN_GOLD}" opacity="0.07"/>
+  <circle cx="80" cy="420" r="100" fill="{HN_BROWN}" opacity="0.08"/>
+  <ellipse cx="750" cy="500" rx="600" ry="120" fill="{HN_BROWN}" opacity="0.04"/>
+  <!-- Brand label top left -->
+  <text x="28" y="38" font-family="Georgia, serif" font-size="11" fill="{HN_CHARCOAL}" opacity="0.5" letter-spacing="5">HOLISTIC NUTRITION · RESEARCH BRIEF</text>
+  <!-- Bottom rule + URL -->
+  <rect x="0" y="486" width="1500" height="2" fill="{color}" opacity="0.4"/>
+  <text x="28" y="476" font-family="Georgia, serif" font-size="11" fill="{HN_CHARCOAL}" opacity="0.45" letter-spacing="2">holisticnutrition.us</text>
 </svg>"""
 
     # Encode SVG as base64 data URI
@@ -419,7 +454,7 @@ def assemble_html(article, hero_img_uri, chart_b64, youtube, product):
     parts = []
 
     # Hero image
-    parts.append(f'<div style="margin:-20px -20px 32px -20px;"><img src="{hero_img_uri}" alt="{article["title"]}" style="width:100%;height:400px;object-fit:cover;display:block;"/></div>')
+    parts.append(f'<div style="margin:0 0 36px 0;border-radius:10px;overflow:hidden;"><img src="{hero_img_uri}" alt="{article["title"]}" style="width:100%;aspect-ratio:3/1;object-fit:cover;display:block;"/></div>')
 
     # Opening quote
     q = article.get("opening_quote", {})
@@ -428,6 +463,57 @@ def assemble_html(article, hero_img_uri, chart_b64, youtube, product):
 <p style="font-size:18px;line-height:1.6;color:#2C2A27;font-style:italic;margin:0 0 8px;">"{q["text"]}"</p>
 <cite style="font-size:12px;color:#7a7570;font-style:normal;">{q.get("source","")}</cite>
 </blockquote>''')
+
+    # Inject global styles for blockquotes and tables
+    parts.append(f'''<style>
+.hn-article blockquote {{
+  border-left: 4px solid {color};
+  background: #faf9f7;
+  padding: 20px 24px;
+  margin: 28px 0;
+  border-radius: 0 8px 8px 0;
+  font-size: 17px;
+  line-height: 1.6;
+  color: #2C2A27;
+  font-style: italic;
+}}
+.hn-article table {{
+  width: 100%;
+  border-collapse: collapse;
+  margin: 24px 0;
+  font-size: 14px;
+}}
+.hn-article th {{
+  background: {color};
+  color: white;
+  padding: 10px 14px;
+  text-align: left;
+  font-weight: 500;
+}}
+.hn-article td {{
+  padding: 9px 14px;
+  border-bottom: 1px solid #e8e3dc;
+  color: #2C2A27;
+}}
+.hn-article tr:nth-child(even) td {{
+  background: #faf9f7;
+}}
+.hn-article ul {{
+  padding-left: 20px;
+  margin: 12px 0;
+}}
+.hn-article li {{
+  margin-bottom: 6px;
+  line-height: 1.65;
+  color: #2C2A27;
+}}
+.hn-article h3 {{
+  font-size: 18px;
+  font-weight: 500;
+  color: #2C2A27;
+  margin: 28px 0 10px;
+}}
+</style><div class="hn-article">''')
 
     # Sections
     sections = article.get("sections", [])
@@ -446,6 +532,9 @@ def assemble_html(article, hero_img_uri, chart_b64, youtube, product):
         if youtube and youtube.get("embed_html") and "clinical" in heading.lower():
             parts.append(youtube["embed_html"])
 
+    # Close article div
+    parts.append("</div>")
+    
     # CTA
     parts.append(f'''<div style="margin:48px 0 32px;padding:28px 32px;background:#faf9f7;border-radius:12px;border:1px solid #e8e3dc;border-left:4px solid {color};">
 <p style="margin:0 0 12px;font-size:15px;color:#2C2A27;line-height:1.7;">{prod["cta"]}</p>
