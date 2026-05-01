@@ -18,6 +18,7 @@ SUPABASE_URL      = "https://ykzkivpcojjzmbbnuewj.supabase.co"
 SUPABASE_KEY      = os.environ.get("SUPABASE_KEY", "")
 ZAPIER_WEBHOOK    = os.environ.get("ZAPIER_WEBHOOK", "")
 YOUTUBE_API_KEY   = os.environ.get("YOUTUBE_API_KEY", "")  # optional — add later
+REPLICATE_API_KEY = os.environ.get("REPLICATE_API_KEY", "")
 
 client = Anthropic(api_key=ANTHROPIC_API_KEY)
 
@@ -292,19 +293,75 @@ MALFORMED JSON:
 
 # ── GENERATE IMAGE (Claude vision + base64) ───────────────────────────────────
 def generate_hero_image(photo_prompt, product):
-    """
-    Generate a branded hero image using Claude's image generation capability.
-    Falls back to a styled SVG placeholder if generation unavailable.
-    """
+    """Generate hero image using FLUX via Replicate. Falls back to SVG if unavailable."""
+    import time
     print(f"  [Image] Generating hero image...")
-    prod = PRODUCT_MAP.get(product, PRODUCT_MAP["general"])
+    prod  = PRODUCT_MAP.get(product, PRODUCT_MAP["general"])
     color = prod["color"]
 
-    # Create a high-quality SVG placeholder branded to HN
-    # (Replace this with FLUX/DALL-E API call when you add those keys)
-    # Wide banner format (1500x500) — 3:1 ratio matching HN article photo style
-    # Repurpose agent will crop to square for Instagram separately
-    svg = f"""<svg xmlns="http://www.w3.org/2000/svg" width="1500" height="500" viewBox="0 0 1500 500">
+    if REPLICATE_API_KEY:
+        try:
+            enhanced_prompt = (
+                f"{photo_prompt} "
+                "Ultra-wide cinematic banner photograph, 3:1 aspect ratio. "
+                "Natural earth tones, warm amber and cream color palette. "
+                "Shallow depth of field, professional botanical or scientific editorial photography. "
+                "Soft atmospheric natural lighting. No text, no people, no product bottles, no lab coats. "
+                "High resolution, photorealistic, National Geographic quality."
+            )
+            headers = {
+                "Authorization": f"Bearer {REPLICATE_API_KEY}",
+                "Content-Type": "application/json",
+                "Prefer": "wait"
+            }
+            payload = {
+                "input": {
+                    "prompt": enhanced_prompt,
+                    "width": 1500,
+                    "height": 500,
+                    "num_outputs": 1,
+                    "output_format": "webp",
+                    "output_quality": 90,
+                    "go_fast": True,
+                    "megapixels": "1",
+                    "num_inference_steps": 4
+                }
+            }
+            print(f"  [FLUX] Sending request...")
+            r = requests.post(
+                "https://api.replicate.com/v1/models/black-forest-labs/flux-schnell/predictions",
+                headers=headers, json=payload, timeout=120
+            )
+            result = r.json()
+            print(f"  [FLUX] Status: {result.get('status', 'unknown')}")
+
+            # Poll until complete
+            if result.get("status") not in ["succeeded", "failed", "canceled"]:
+                poll_url = result.get("urls", {}).get("get")
+                if poll_url:
+                    for _ in range(30):
+                        time.sleep(3)
+                        poll = requests.get(poll_url, headers={"Authorization": f"Bearer {REPLICATE_API_KEY}"})
+                        result = poll.json()
+                        print(f"  [FLUX] Polling... {result.get('status')}")
+                        if result.get("status") in ["succeeded", "failed", "canceled"]:
+                            break
+
+            if result.get("status") == "succeeded":
+                output = result.get("output")
+                img_url = output[0] if isinstance(output, list) else output
+                print(f"  [FLUX] Success: {img_url}")
+                img_r = requests.get(img_url, timeout=30)
+                if img_r.status_code == 200:
+                    img_b64 = base64.b64encode(img_r.content).decode()
+                    return f"data:image/webp;base64,{img_b64}", img_url
+            print(f"  [FLUX] Failed: {result.get('error', 'unknown')}")
+        except Exception as e:
+            print(f"  [FLUX] Error: {e} — using SVG fallback")
+
+    # SVG fallback
+    print(f"  [Image] Using SVG placeholder")
+    svg = f'''<svg xmlns="http://www.w3.org/2000/svg" width="1500" height="500" viewBox="0 0 1500 500">
   <defs>
     <linearGradient id="bg" x1="0%" y1="0%" x2="100%" y2="100%">
       <stop offset="0%" style="stop-color:{HN_CREAM};stop-opacity:1"/>
@@ -313,36 +370,18 @@ def generate_hero_image(photo_prompt, product):
     </linearGradient>
     <linearGradient id="accent" x1="0%" y1="0%" x2="100%" y2="0%">
       <stop offset="0%" style="stop-color:{color};stop-opacity:0.18"/>
-      <stop offset="70%" style="stop-color:{color};stop-opacity:0.04"/>
       <stop offset="100%" style="stop-color:{color};stop-opacity:0"/>
-    </linearGradient>
-    <linearGradient id="vignette" x1="0%" y1="0%" x2="100%" y2="0%">
-      <stop offset="0%" style="stop-color:#000000;stop-opacity:0.08"/>
-      <stop offset="40%" style="stop-color:#000000;stop-opacity:0"/>
-      <stop offset="100%" style="stop-color:#000000;stop-opacity:0.12"/>
     </linearGradient>
   </defs>
   <rect width="1500" height="500" fill="url(#bg)"/>
   <rect width="1500" height="500" fill="url(#accent)"/>
-  <rect width="1500" height="500" fill="url(#vignette)"/>
-  <!-- Left accent bar -->
   <rect x="0" y="0" width="6" height="500" fill="{color}"/>
-  <!-- Decorative organic shapes -->
   <circle cx="1200" cy="250" r="320" fill="{color}" opacity="0.05"/>
-  <circle cx="1380" cy="80" r="140" fill="{HN_GOLD}" opacity="0.07"/>
-  <circle cx="80" cy="420" r="100" fill="{HN_BROWN}" opacity="0.08"/>
-  <ellipse cx="750" cy="500" rx="600" ry="120" fill="{HN_BROWN}" opacity="0.04"/>
-  <!-- Brand label top left -->
   <text x="28" y="38" font-family="Georgia, serif" font-size="11" fill="{HN_CHARCOAL}" opacity="0.5" letter-spacing="5">HOLISTIC NUTRITION · RESEARCH BRIEF</text>
-  <!-- Bottom rule + URL -->
   <rect x="0" y="486" width="1500" height="2" fill="{color}" opacity="0.4"/>
-  <text x="28" y="476" font-family="Georgia, serif" font-size="11" fill="{HN_CHARCOAL}" opacity="0.45" letter-spacing="2">holisticnutrition.us</text>
-</svg>"""
-
-    # Encode SVG as base64 data URI
+</svg>'''
     svg_b64 = base64.b64encode(svg.encode()).decode()
     return f"data:image/svg+xml;base64,{svg_b64}", svg
-
 # ── GENERATE CHART ────────────────────────────────────────────────────────────
 def generate_chart(chart_data, product):
     """Render a branded matplotlib chart and return as base64 PNG."""
