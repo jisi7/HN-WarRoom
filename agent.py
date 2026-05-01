@@ -239,7 +239,35 @@ def generate_article(keyword, product):
     raw = msg.content[0].text.strip()
     raw = re.sub(r'^```[a-z]*\n?', '', raw)
     raw = re.sub(r'\n?```$', '', raw)
-    return json.loads(raw.strip())
+    raw = raw.strip()
+    
+    # First attempt: direct parse
+    try:
+        return json.loads(raw)
+    except json.JSONDecodeError:
+        pass
+    
+    # Second attempt: ask Claude to fix the JSON
+    print("  [Claude] JSON parse failed — requesting clean JSON repair...")
+    fix_msg = client.messages.create(
+        model="claude-sonnet-4-5",
+        max_tokens=6000,
+        messages=[{
+            "role": "user",
+            "content": f"""The following JSON is malformed. Fix it so it parses correctly.
+Rules:
+- Escape all apostrophes and quotes inside HTML strings
+- Return ONLY the fixed valid JSON, no explanation, no markdown fences
+- Preserve all content exactly, just fix the JSON syntax
+
+MALFORMED JSON:
+{raw}"""
+        }]
+    )
+    fixed = fix_msg.content[0].text.strip()
+    fixed = re.sub(r'^```[a-z]*\n?', '', fixed)
+    fixed = re.sub(r'\n?```$', '', fixed)
+    return json.loads(fixed.strip())
 
 # ── GENERATE IMAGE (Claude vision + base64) ───────────────────────────────────
 def generate_hero_image(photo_prompt, product):
