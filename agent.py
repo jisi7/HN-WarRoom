@@ -163,6 +163,7 @@ HTML FORMATTING:
 - Inline citations as bracketed numbers [1] [2]
 - Health claims: "supports", "associated with", "may help", "evidence suggests" — never "treats", "cures", "prevents"
 - Minimum 1600 words, target 2000-2400 words
+- CRITICAL JSON RULE: Never use backslashes anywhere in HTML content. Use only standard alphanumeric characters, spaces, HTML tags, and HTML entities. Do not use \n, \t, or any escape sequences inside string values.
 
 CHART DATA:
 Identify ONE key quantitative finding for a bar/comparison chart.
@@ -262,34 +263,70 @@ def generate_article(keyword, product):
     raw = re.sub(r'^```[a-z]*\n?', '', raw)
     raw = re.sub(r'\n?```$', '', raw)
     raw = raw.strip()
-    
-    # First attempt: direct parse
-    try:
-        return json.loads(raw)
-    except json.JSONDecodeError:
-        pass
-    
-    # Second attempt: ask Claude to fix the JSON
-    print("  [Claude] JSON parse failed — requesting clean JSON repair...")
+
+    def safe_parse(text):
+        """Try multiple JSON parsing strategies."""
+        # Strategy 1: direct parse
+        try:
+            return json.loads(text)
+        except json.JSONDecodeError:
+            pass
+
+        # Strategy 2: fix invalid backslash escapes
+        try:
+            # Replace invalid escape sequences with safe versions
+            fixed = re.sub(r'\\(?!["\\/bfnrtu])', r'\\\\', text)
+            return json.loads(fixed)
+        except json.JSONDecodeError:
+            pass
+
+        # Strategy 3: extract JSON object boundaries and re-parse
+        try:
+            start = text.index('{')
+            end   = text.rindex('}') + 1
+            return json.loads(text[start:end])
+        except (ValueError, json.JSONDecodeError):
+            pass
+
+        # Strategy 4: use ast.literal_eval as last resort on cleaned text
+        try:
+            import ast
+            # Remove JSON-incompatible constructs
+            cleaned = text.replace('true', 'True').replace('false', 'False').replace('null', 'None')
+            return ast.literal_eval(cleaned)
+        except Exception:
+            pass
+
+        return None
+
+    result = safe_parse(raw)
+    if result:
+        return result
+
+    # Final attempt: ask Claude to rewrite as clean JSON
+    print("  [Claude] All parse strategies failed — requesting full JSON rewrite...")
     fix_msg = client.messages.create(
         model="claude-sonnet-4-5",
         max_tokens=6000,
+        system="You are a JSON repair specialist. Return ONLY valid JSON with no markdown, no explanation, no preamble.",
         messages=[{
             "role": "user",
-            "content": f"""The following JSON is malformed. Fix it so it parses correctly.
-Rules:
-- Escape all apostrophes and quotes inside HTML strings
-- Return ONLY the fixed valid JSON, no explanation, no markdown fences
-- Preserve all content exactly, just fix the JSON syntax
-
-MALFORMED JSON:
-{raw}"""
+            "content": (
+                "Rewrite this as valid JSON. "
+                "All HTML must be properly escaped inside string values. "
+                "Replace any backslashes in HTML with forward slashes or remove them. "
+                "Return ONLY the JSON object, nothing else.\n\n"
+                + raw[:8000]  # Truncate to avoid token limits
+            )
         }]
     )
     fixed = fix_msg.content[0].text.strip()
     fixed = re.sub(r'^```[a-z]*\n?', '', fixed)
     fixed = re.sub(r'\n?```$', '', fixed)
-    return json.loads(fixed.strip())
+    result = safe_parse(fixed.strip())
+    if result:
+        return result
+    raise ValueError("Could not parse article JSON after all attempts")
 
 # ── GENERATE IMAGE (Claude vision + base64) ───────────────────────────────────
 def generate_hero_image(photo_prompt, product):
