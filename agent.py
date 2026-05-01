@@ -19,6 +19,11 @@ SUPABASE_KEY      = os.environ.get("SUPABASE_KEY", "")
 ZAPIER_WEBHOOK    = os.environ.get("ZAPIER_WEBHOOK", "")
 YOUTUBE_API_KEY   = os.environ.get("YOUTUBE_API_KEY", "")  # optional — add later
 REPLICATE_API_KEY = os.environ.get("REPLICATE_API_KEY", "")
+SHOPIFY_TOKEN       = os.environ.get("SHOPIFY_TOKEN", "")
+SHOPIFY_STORE       = os.environ.get("SHOPIFY_STORE", "natures-premier.myshopify.com")
+CLOUDINARY_CLOUD    = os.environ.get("CLOUDINARY_CLOUD", "")
+CLOUDINARY_API_KEY  = os.environ.get("CLOUDINARY_API_KEY", "")
+CLOUDINARY_SECRET   = os.environ.get("CLOUDINARY_SECRET", "")
 
 client = Anthropic(api_key=ANTHROPIC_API_KEY)
 
@@ -329,6 +334,46 @@ def generate_article(keyword, product):
     raise ValueError("Could not parse article JSON after all attempts")
 
 # ── GENERATE IMAGE (Claude vision + base64) ───────────────────────────────────
+
+def upload_image_to_cloudinary(image_bytes, ext="webp"):
+    """Upload image to Cloudinary and return permanent CDN URL."""
+    if not CLOUDINARY_CLOUD or not CLOUDINARY_API_KEY or not CLOUDINARY_SECRET:
+        return None
+    try:
+        import hashlib, hmac, time as _time
+        timestamp  = str(int(_time.time()))
+        public_id  = f"hn-articles/article-{datetime.datetime.utcnow().strftime('%Y%m%d%H%M%S')}"
+        
+        # Build signature
+        params_str = f"public_id={public_id}&timestamp={timestamp}"
+        signature  = hashlib.sha1(f"{params_str}{CLOUDINARY_SECRET}".encode()).hexdigest()
+        
+        upload_url = f"https://api.cloudinary.com/v1_1/{CLOUDINARY_CLOUD}/image/upload"
+        
+        response = requests.post(
+            upload_url,
+            data={
+                "api_key":   CLOUDINARY_API_KEY,
+                "timestamp": timestamp,
+                "public_id": public_id,
+                "signature": signature,
+                "folder":    "hn-articles"
+            },
+            files={"file": (f"image.{ext}", image_bytes, f"image/{ext}")},
+            timeout=60
+        )
+        
+        result = response.json()
+        url = result.get("secure_url")
+        if url:
+            print(f"  [Cloudinary] Uploaded: {url}")
+            return url
+        else:
+            print(f"  [Cloudinary] Upload error: {result.get('error', result)}")
+    except Exception as e:
+        print(f"  [Cloudinary] Exception: {e}")
+    return None
+
 def generate_hero_image(photo_prompt, product):
     """Generate hero image using FLUX via Replicate. Falls back to SVG if unavailable."""
     import time
@@ -390,8 +435,13 @@ def generate_hero_image(photo_prompt, product):
                 print(f"  [FLUX] Success: {img_url}")
                 img_r = requests.get(img_url, timeout=30)
                 if img_r.status_code == 200:
-                    img_b64 = base64.b64encode(img_r.content).decode()
-                    return f"data:image/webp;base64,{img_b64}", img_url
+                    # Upload to Cloudinary for permanent hosting
+                    cdn_url = upload_image_to_cloudinary(img_r.content, "webp")
+                    if cdn_url:
+                        return cdn_url, cdn_url
+                    # Fallback: use Replicate URL directly
+                    print(f"  [Image] Using Replicate URL (may expire)")
+                    return img_url, img_url
             print(f"  [FLUX] Failed: {result.get('error', 'unknown')}")
         except Exception as e:
             print(f"  [FLUX] Error: {e} — using SVG fallback")
