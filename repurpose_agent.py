@@ -13,7 +13,8 @@ from anthropic import Anthropic
 ANTHROPIC_API_KEY  = os.environ.get("ANTHROPIC_API_KEY", "")
 SUPABASE_URL       = "https://ykzkivpcojjzmbbnuewj.supabase.co"
 SUPABASE_KEY       = os.environ.get("SUPABASE_KEY", "")
-ZAPIER_REPURPOSE_WEBHOOK = os.environ.get("ZAPIER_REPURPOSE_WEBHOOK", "https://hooks.zapier.com/hooks/catch/20680196/uvl38v5/")
+_zrw = os.environ.get("ZAPIER_REPURPOSE_WEBHOOK", "")
+ZAPIER_REPURPOSE_WEBHOOK = _zrw if _zrw else "https://hooks.zapier.com/hooks/catch/20680196/uvl38v5/"
 DRIVE_FOLDER_NAME        = "HN Content A"  # folder inside 2026
 
 client = Anthropic(api_key=ANTHROPIC_API_KEY)
