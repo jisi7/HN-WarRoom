@@ -1,0 +1,25 @@
+name: HN Repurpose Agent
+
+on:
+  schedule:
+    - cron: '30 14 * * 2'
+    - cron: '30 14 * * 5'
+  workflow_dispatch:
+
+jobs:
+  repurpose:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+      - name: Install dependencies
+        run: pip install -r requirements.txt
+      - name: Run HN Repurpose Agent
+        env:
+          ANTHROPIC_API_KEY: ${{ secrets.ANTHROPIC_API_KEY }}
+          SUPABASE_KEY: ${{ secrets.SUPABASE_KEY }}
+          ZAPIER_REPURPOSE_WEBHOOK: ${{ secrets.ZAPIER_REPURPOSE_WEBHOOK }}
+        run: python repurpose_agent.py
