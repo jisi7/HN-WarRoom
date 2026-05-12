@@ -30,4 +30,5 @@ jobs:
           CLOUDINARY_CLOUD: ${{ secrets.CLOUDINARY_CLOUD }}
           CLOUDINARY_API_KEY: ${{ secrets.CLOUDINARY_API_KEY }}
           CLOUDINARY_SECRET: ${{ secrets.CLOUDINARY_SECRET }}
+          ZAPIER_LIBRARY_HOOK: ${{ secrets.ZAPIER_LIBRARY_HOOK }}
         run: python agent.py
