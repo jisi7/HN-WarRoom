@@ -2,8 +2,7 @@ name: HN Content Agent
 
 on:
   schedule:
-    - cron: '0 14 * * 2'
-    - cron: '0 14 * * 5'
+    - cron: '0 14 * * *'
   workflow_dispatch:
 
 jobs:
