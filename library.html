@@ -1,0 +1,561 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Research Library — Holistic Nutrition</title>
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600&display=swap');
+
+  :root {
+    --brown: #A3988B;
+    --cream: #E8E3DC;
+    --charcoal: #2C2A27;
+    --green: #048142;
+    --red: #D2042D;
+    --blue: #24418F;
+    --amber: #C8893A;
+    --warm-white: #FAFAF8;
+    --border: #E8E3DC;
+  }
+
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+
+  body {
+    font-family: 'Inter', sans-serif;
+    background: var(--warm-white);
+    color: var(--charcoal);
+    min-height: 100vh;
+  }
+
+  /* HEADER */
+  header {
+    background: var(--brown);
+    padding: 0 40px;
+    height: 64px;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+  }
+
+  .logo {
+    font-size: 13px;
+    font-weight: 500;
+    color: white;
+    letter-spacing: 0.12em;
+    text-transform: uppercase;
+    text-decoration: none;
+  }
+
+  .header-tag {
+    font-size: 11px;
+    color: rgba(255,255,255,0.7);
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+  }
+
+  /* HERO */
+  .hero {
+    background: var(--brown);
+    padding: 48px 40px 56px;
+    border-bottom: 1px solid rgba(255,255,255,0.15);
+  }
+
+  .hero h1 {
+    font-size: 32px;
+    font-weight: 300;
+    color: white;
+    letter-spacing: -0.01em;
+    margin-bottom: 12px;
+  }
+
+  .hero h1 span {
+    font-weight: 600;
+  }
+
+  .hero p {
+    font-size: 15px;
+    color: rgba(255,255,255,0.75);
+    max-width: 560px;
+    line-height: 1.6;
+    margin-bottom: 32px;
+  }
+
+  /* SEARCH + FILTERS */
+  .controls {
+    display: flex;
+    gap: 12px;
+    flex-wrap: wrap;
+    align-items: center;
+  }
+
+  .search-wrap {
+    position: relative;
+    flex: 1;
+    min-width: 240px;
+    max-width: 400px;
+  }
+
+  .search-wrap svg {
+    position: absolute;
+    left: 14px;
+    top: 50%;
+    transform: translateY(-50%);
+    color: rgba(255,255,255,0.5);
+  }
+
+  #search {
+    width: 100%;
+    padding: 10px 16px 10px 42px;
+    background: rgba(255,255,255,0.12);
+    border: 1px solid rgba(255,255,255,0.25);
+    border-radius: 8px;
+    color: white;
+    font-size: 14px;
+    font-family: 'Inter', sans-serif;
+    outline: none;
+    transition: all 0.2s;
+  }
+
+  #search::placeholder { color: rgba(255,255,255,0.5); }
+  #search:focus { background: rgba(255,255,255,0.18); border-color: rgba(255,255,255,0.5); }
+
+  .filter-btn {
+    padding: 10px 18px;
+    border-radius: 8px;
+    border: 1px solid rgba(255,255,255,0.25);
+    background: transparent;
+    color: rgba(255,255,255,0.8);
+    font-size: 13px;
+    font-family: 'Inter', sans-serif;
+    cursor: pointer;
+    transition: all 0.2s;
+    white-space: nowrap;
+  }
+
+  .filter-btn:hover { background: rgba(255,255,255,0.1); color: white; }
+  .filter-btn.active { background: white; color: var(--charcoal); border-color: white; font-weight: 500; }
+
+  /* STATS BAR */
+  .stats-bar {
+    background: var(--cream);
+    padding: 16px 40px;
+    display: flex;
+    gap: 40px;
+    border-bottom: 1px solid var(--border);
+  }
+
+  .stat {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+  }
+
+  .stat-num {
+    font-size: 20px;
+    font-weight: 600;
+    color: var(--charcoal);
+  }
+
+  .stat-label {
+    font-size: 12px;
+    color: #7a7570;
+    text-transform: uppercase;
+    letter-spacing: 0.06em;
+  }
+
+  .stat-dot {
+    width: 8px;
+    height: 8px;
+    border-radius: 50%;
+  }
+
+  /* MAIN CONTENT */
+  .container {
+    max-width: 1100px;
+    margin: 0 auto;
+    padding: 48px 40px;
+  }
+
+  /* CATEGORY SECTION */
+  .category-section {
+    margin-bottom: 56px;
+  }
+
+  .category-header {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    margin-bottom: 20px;
+    padding-bottom: 16px;
+    border-bottom: 2px solid var(--border);
+  }
+
+  .category-bar {
+    width: 4px;
+    height: 24px;
+    border-radius: 2px;
+  }
+
+  .category-title {
+    font-size: 13px;
+    font-weight: 500;
+    text-transform: uppercase;
+    letter-spacing: 0.1em;
+    color: var(--charcoal);
+  }
+
+  .category-count {
+    font-size: 12px;
+    color: #9a9590;
+    margin-left: auto;
+  }
+
+  /* ARTICLE CARDS */
+  .articles-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(320px, 1fr));
+    gap: 16px;
+  }
+
+  .article-card {
+    background: white;
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    padding: 20px;
+    text-decoration: none;
+    color: inherit;
+    display: block;
+    transition: all 0.2s;
+    border-left: 3px solid transparent;
+  }
+
+  .article-card:hover {
+    border-color: var(--border);
+    box-shadow: 0 4px 16px rgba(0,0,0,0.06);
+    transform: translateY(-1px);
+  }
+
+  .card-date {
+    font-size: 11px;
+    color: #9a9590;
+    text-transform: uppercase;
+    letter-spacing: 0.06em;
+    margin-bottom: 8px;
+  }
+
+  .card-title {
+    font-size: 14px;
+    font-weight: 500;
+    color: var(--charcoal);
+    line-height: 1.5;
+    margin-bottom: 10px;
+  }
+
+  .card-badge {
+    display: inline-block;
+    padding: 3px 10px;
+    border-radius: 20px;
+    font-size: 11px;
+    font-weight: 500;
+    color: white;
+  }
+
+  .card-arrow {
+    float: right;
+    font-size: 16px;
+    color: #ccc5bb;
+    margin-top: -2px;
+  }
+
+  /* EMPTY STATE */
+  .empty {
+    text-align: center;
+    padding: 80px 20px;
+    color: #9a9590;
+  }
+
+  .empty h3 { font-size: 18px; font-weight: 400; margin-bottom: 8px; }
+  .empty p { font-size: 14px; }
+
+  /* LOADING */
+  .loading {
+    text-align: center;
+    padding: 80px 20px;
+  }
+
+  .spinner {
+    width: 32px;
+    height: 32px;
+    border: 3px solid var(--border);
+    border-top-color: var(--brown);
+    border-radius: 50%;
+    animation: spin 0.8s linear infinite;
+    margin: 0 auto 16px;
+  }
+
+  @keyframes spin { to { transform: rotate(360deg); } }
+
+  .loading p { font-size: 14px; color: #9a9590; }
+
+  /* FOOTER */
+  footer {
+    background: var(--charcoal);
+    padding: 32px 40px;
+    text-align: center;
+  }
+
+  footer p {
+    font-size: 12px;
+    color: rgba(255,255,255,0.4);
+    letter-spacing: 0.04em;
+  }
+
+  footer a {
+    color: rgba(255,255,255,0.6);
+    text-decoration: none;
+  }
+
+  footer a:hover { color: white; }
+
+  /* NO RESULTS */
+  .no-results {
+    grid-column: 1/-1;
+    text-align: center;
+    padding: 40px;
+    color: #9a9590;
+    font-size: 14px;
+  }
+
+  @media (max-width: 640px) {
+    header { padding: 0 20px; }
+    .hero { padding: 32px 20px 40px; }
+    .hero h1 { font-size: 24px; }
+    .stats-bar { padding: 16px 20px; gap: 24px; }
+    .container { padding: 32px 20px; }
+    .articles-grid { grid-template-columns: 1fr; }
+  }
+</style>
+</head>
+<body>
+
+<header>
+  <a href="https://holisticnutrition.us" class="logo">Holistic Nutrition</a>
+  <span class="header-tag">Research Library</span>
+</header>
+
+<div class="hero">
+  <h1>The HN <span>Research Library</span></h1>
+  <p>Peer-reviewed research briefs, ingredient factsheets, and clinical evidence summaries across cognitive performance, physical optimization, and longevity science.</p>
+  <div class="controls">
+    <div class="search-wrap">
+      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+        <circle cx="11" cy="11" r="8"/><path d="m21 21-4.35-4.35"/>
+      </svg>
+      <input type="text" id="search" placeholder="Search articles...">
+    </div>
+    <button class="filter-btn active" data-filter="all">All</button>
+    <button class="filter-btn" data-filter="Cognitive Performance">Cognition</button>
+    <button class="filter-btn" data-filter="Physical Performance">Performance</button>
+    <button class="filter-btn" data-filter="Foundational Health and Longevity">Longevity</button>
+    <button class="filter-btn" data-filter="Research Briefs">General</button>
+  </div>
+</div>
+
+<div class="stats-bar">
+  <div class="stat">
+    <span class="stat-num" id="total-count">—</span>
+    <span class="stat-label">Articles</span>
+  </div>
+  <div class="stat">
+    <span class="stat-dot" style="background:#24418F"></span>
+    <span class="stat-num" id="cog-count">—</span>
+    <span class="stat-label">Cognition</span>
+  </div>
+  <div class="stat">
+    <span class="stat-dot" style="background:#D2042D"></span>
+    <span class="stat-num" id="perf-count">—</span>
+    <span class="stat-label">Performance</span>
+  </div>
+  <div class="stat">
+    <span class="stat-dot" style="background:#C8893A"></span>
+    <span class="stat-num" id="lon-count">—</span>
+    <span class="stat-label">Longevity</span>
+  </div>
+</div>
+
+<div class="container">
+  <div id="library-content">
+    <div class="loading">
+      <div class="spinner"></div>
+      <p>Loading research library...</p>
+    </div>
+  </div>
+</div>
+
+<footer>
+  <p>
+    <a href="https://holisticnutrition.us">holisticnutrition.us</a> &nbsp;·&nbsp;
+    FDA Registered &nbsp;·&nbsp; GMP Compliant &nbsp;·&nbsp; Third-Party Lab Tested
+  </p>
+</footer>
+
+<script>
+const SUPABASE_URL = 'https://ykzkivpcojjzmbbnuewj.supabase.co';
+const SUPABASE_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InlremtpdnBjb2pqem1iYm51ZXdqIiwicm9sZSI6ImFub24iLCJpYXQiOjE3Nzc1NzUxODAsImV4cCI6MjA5MzE1MTE4MH0.V4cEKUNZXoLXTDw0zhMRN8LIlBfEl_TChHHzKkGxo2w';
+
+const CATEGORY_CONFIG = {
+  'Cognitive Performance':              { color: '#24418F', label: 'Cognition' },
+  'Physical Performance':               { color: '#D2042D', label: 'Performance' },
+  'Foundational Health and Longevity':  { color: '#C8893A', label: 'Longevity' },
+  'Research Briefs':                    { color: '#A3988B', label: 'General' }
+};
+
+const PRODUCT_CATEGORY = {
+  'focase':    'Cognitive Performance',
+  'creatine':  'Physical Performance',
+  'vitamin_d': 'Foundational Health and Longevity',
+  'general':   'Research Briefs'
+};
+
+let allArticles = [];
+let activeFilter = 'all';
+let searchQuery = '';
+
+async function fetchArticles() {
+  try {
+    const res = await fetch(
+      `${SUPABASE_URL}/rest/v1/articles?status=eq.published&order=published_at.desc&limit=500`,
+      { headers: { 'apikey': SUPABASE_KEY, 'Authorization': `Bearer ${SUPABASE_KEY}` } }
+    );
+    const data = await res.json();
+    return Array.isArray(data) ? data : [];
+  } catch(e) {
+    console.error('Fetch error:', e);
+    return [];
+  }
+}
+
+function getCategory(article) {
+  if (article.product && PRODUCT_CATEGORY[article.product]) {
+    return PRODUCT_CATEGORY[article.product];
+  }
+  return 'Research Briefs';
+}
+
+function formatDate(dateStr) {
+  if (!dateStr) return '';
+  try {
+    return new Date(dateStr).toLocaleDateString('en-US', { month: 'long', year: 'numeric' });
+  } catch { return ''; }
+}
+
+function updateStats(articles) {
+  document.getElementById('total-count').textContent = articles.length;
+  document.getElementById('cog-count').textContent =
+    articles.filter(a => getCategory(a) === 'Cognitive Performance').length;
+  document.getElementById('perf-count').textContent =
+    articles.filter(a => getCategory(a) === 'Physical Performance').length;
+  document.getElementById('lon-count').textContent =
+    articles.filter(a => getCategory(a) === 'Foundational Health and Longevity').length;
+}
+
+function renderLibrary(articles) {
+  const container = document.getElementById('library-content');
+
+  if (!articles.length) {
+    container.innerHTML = `<div class="empty"><h3>No articles found</h3><p>Try adjusting your search or filter.</p></div>`;
+    return;
+  }
+
+  // Filter
+  let filtered = articles;
+  if (activeFilter !== 'all') {
+    filtered = articles.filter(a => getCategory(a) === activeFilter);
+  }
+  if (searchQuery) {
+    const q = searchQuery.toLowerCase();
+    filtered = filtered.filter(a =>
+      (a.title || '').toLowerCase().includes(q) ||
+      (a.keyword || '').toLowerCase().includes(q)
+    );
+  }
+
+  if (!filtered.length) {
+    container.innerHTML = `<div class="empty"><h3>No results found</h3><p>Try a different search term or filter.</p></div>`;
+    return;
+  }
+
+  // Group by category
+  const categories = [
+    'Cognitive Performance',
+    'Physical Performance',
+    'Foundational Health and Longevity',
+    'Research Briefs'
+  ];
+
+  let html = '';
+  for (const cat of categories) {
+    const catArticles = filtered.filter(a => getCategory(a) === cat);
+    if (!catArticles.length) continue;
+
+    const config = CATEGORY_CONFIG[cat] || { color: '#A3988B', label: cat };
+
+    html += `
+      <div class="category-section" data-category="${cat}">
+        <div class="category-header">
+          <div class="category-bar" style="background:${config.color}"></div>
+          <span class="category-title">${cat}</span>
+          <span class="category-count">${catArticles.length} article${catArticles.length !== 1 ? 's' : ''}</span>
+        </div>
+        <div class="articles-grid">
+          ${catArticles.map(a => renderCard(a, config)).join('')}
+        </div>
+      </div>`;
+  }
+
+  container.innerHTML = html;
+}
+
+function renderCard(article, config) {
+  const url = article.shopify_url || '#';
+  const title = article.title || 'Untitled';
+  const date = formatDate(article.published_at);
+
+  return `
+    <a href="${url}" target="_blank" class="article-card" style="border-left-color:${config.color}">
+      <div class="card-date">${date}</div>
+      <div class="card-title">${title}<span class="card-arrow">→</span></div>
+      <span class="card-badge" style="background:${config.color}">${config.label}</span>
+    </a>`;
+}
+
+function init() {
+  // Search
+  document.getElementById('search').addEventListener('input', e => {
+    searchQuery = e.target.value.trim();
+    renderLibrary(allArticles);
+  });
+
+  // Filters
+  document.querySelectorAll('.filter-btn').forEach(btn => {
+    btn.addEventListener('click', () => {
+      document.querySelectorAll('.filter-btn').forEach(b => b.classList.remove('active'));
+      btn.classList.add('active');
+      activeFilter = btn.dataset.filter;
+      renderLibrary(allArticles);
+    });
+  });
+
+  // Load data
+  fetchArticles().then(articles => {
+    allArticles = articles;
+    updateStats(articles);
+    renderLibrary(articles);
+  });
+}
+
+init();
+</script>
+</body>
+</html>
