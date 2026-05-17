@@ -18,14 +18,13 @@ body {
   background: #F5F3F0;
   border-top: 4px solid #A3988B;
   border-bottom: 1px solid #e0dbd4;
-  padding: 36px 0 32px;
-  margin-bottom: 36px;
+  padding: 36px 24px 28px;
+  margin-bottom: 32px;
 }
 
 .inst-inner {
   max-width: 860px;
   margin: 0 auto;
-  padding: 0 24px;
   display: flex;
   gap: 40px;
   align-items: flex-start;
@@ -33,8 +32,8 @@ body {
 
 .inst-badge {
   flex-shrink: 0;
-  width: 64px;
-  height: 64px;
+  width: 60px;
+  height: 60px;
   background: #A3988B;
   border-radius: 10px;
   display: flex;
@@ -43,8 +42,8 @@ body {
 }
 
 .inst-badge svg {
-  width: 32px;
-  height: 32px;
+  width: 30px;
+  height: 30px;
   color: white;
 }
 
@@ -56,7 +55,7 @@ body {
   color: #A3988B;
   letter-spacing: 0.12em;
   text-transform: uppercase;
-  margin-bottom: 8px;
+  margin-bottom: 7px;
 }
 
 .inst-title {
@@ -69,11 +68,11 @@ body {
 }
 
 .inst-desc {
-  font-size: 14px;
+  font-size: 13px;
   color: #5a5550;
   line-height: 1.7;
   max-width: 600px;
-  margin-bottom: 20px;
+  margin-bottom: 18px;
 }
 
 .inst-tags {
@@ -86,7 +85,7 @@ body {
   display: inline-flex;
   align-items: center;
   gap: 6px;
-  padding: 5px 12px;
+  padding: 4px 12px;
   background: white;
   border: 1px solid #d4cec6;
   border-radius: 20px;
@@ -107,17 +106,7 @@ body {
   flex-shrink: 0;
 }
 
-.inst-stats {
-  flex-shrink: 0;
-  display: flex;
-  flex-direction: column;
-  gap: 20px;
-  padding-top: 4px;
-}
-
-.inst-stat-item {
-  text-align: right;
-}
+.inst-stat-item { text-align: right; }
 
 .inst-stat-num {
   font-size: 28px;
@@ -138,19 +127,19 @@ body {
 
 .inst-notice {
   max-width: 860px;
-  margin: 0 auto;
-  padding: 10px 24px 0;
+  margin: 20px auto 0;
   display: flex;
-  align-items: center;
+  align-items: flex-start;
   gap: 8px;
 }
 
 .inst-notice-bar {
   width: 3px;
-  height: 32px;
+  min-height: 32px;
   background: #048142;
   border-radius: 2px;
   flex-shrink: 0;
+  margin-top: 2px;
 }
 
 .inst-notice p {
@@ -168,14 +157,14 @@ body {
 .lib-wrap {
   max-width: 860px;
   margin: 0 auto;
-  padding: 0 24px 60px;
+  padding: 0 24px 48px;
 }
 
 .search-row {
   display: flex;
   gap: 8px;
   align-items: center;
-  margin-bottom: 16px;
+  margin-bottom: 14px;
   flex-wrap: wrap;
 }
 
@@ -233,6 +222,7 @@ body {
   margin-bottom: 28px;
   border-top: 1px solid #e8e3dc;
   border-bottom: 1px solid #e8e3dc;
+  flex-wrap: wrap;
 }
 
 .stat { display: flex; align-items: center; gap: 6px; }
@@ -240,7 +230,8 @@ body {
 .stat-num { font-size: 16px; font-weight: 600; color: #2C2A27; }
 .stat-label { font-size: 10px; color: #9a9590; text-transform: uppercase; letter-spacing: 0.06em; }
 
-.category-section { margin-bottom: 40px; }
+/* ── CATEGORY SECTION ── */
+.category-section { margin-bottom: 36px; }
 
 .category-header {
   display: flex;
@@ -249,18 +240,32 @@ body {
   margin-bottom: 14px;
   padding-bottom: 10px;
   border-bottom: 1.5px solid #e8e3dc;
+  cursor: pointer;
+  user-select: none;
 }
 
-.cat-bar { width: 4px; height: 18px; border-radius: 2px; }
+.cat-bar { width: 4px; height: 18px; border-radius: 2px; flex-shrink: 0; }
 .cat-title { font-size: 11px; font-weight: 500; text-transform: uppercase; letter-spacing: 0.1em; color: #2C2A27; }
 .cat-count { font-size: 11px; color: #b0a89f; margin-left: auto; }
 
+.cat-chevron {
+  width: 16px;
+  height: 16px;
+  color: #b0a89f;
+  transition: transform 0.25s;
+  flex-shrink: 0;
+}
+
+.cat-chevron.open { transform: rotate(180deg); }
+
+/* ── ARTICLES GRID ── */
 .articles-grid {
   display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(260px, 1fr));
+  grid-template-columns: repeat(auto-fill, minmax(240px, 1fr));
   gap: 10px;
 }
 
+/* ── CARD ── */
 .article-card {
   background: white;
   border: 1px solid #e8e3dc;
@@ -270,11 +275,18 @@ body {
   text-decoration: none;
   color: inherit;
   display: block;
-  transition: all 0.15s;
+  transition: box-shadow 0.15s, transform 0.15s, opacity 0.4s, translate 0.4s;
+  opacity: 0;
+  translate: 0 16px;
+}
+
+.article-card.visible {
+  opacity: 1;
+  translate: 0 0;
 }
 
 .article-card:hover {
-  box-shadow: 0 2px 10px rgba(0,0,0,0.06);
+  box-shadow: 0 2px 10px rgba(0,0,0,0.07);
   transform: translateY(-1px);
 }
 
@@ -283,6 +295,38 @@ body {
 .card-badge { display: inline-block; padding: 2px 9px; border-radius: 20px; font-size: 10px; font-weight: 500; color: white; }
 .card-arrow { float: right; font-size: 13px; color: #d4cec6; margin-top: 1px; }
 
+/* ── SHOW MORE ── */
+.show-more-wrap {
+  margin-top: 14px;
+  text-align: center;
+}
+
+.show-more-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 8px 20px;
+  border: 1px solid #d4cec6;
+  border-radius: 8px;
+  background: white;
+  color: #5a5550;
+  font-size: 12px;
+  font-family: inherit;
+  cursor: pointer;
+  transition: all 0.15s;
+}
+
+.show-more-btn:hover { border-color: #A3988B; color: #2C2A27; }
+
+.show-more-btn svg {
+  width: 14px;
+  height: 14px;
+  transition: transform 0.25s;
+}
+
+.show-more-btn.expanded svg { transform: rotate(180deg); }
+
+/* ── EMPTY / LOADING ── */
 .empty { text-align: center; padding: 60px 20px; color: #b0a89f; }
 .empty p { font-size: 14px; }
 
@@ -298,14 +342,15 @@ body {
 @keyframes spin { to { transform: rotate(360deg); } }
 .loading p { font-size: 13px; color: #b0a89f; }
 
-@media (max-width: 640px) {
-  .inst-inner { flex-direction: column; gap: 20px; }
+/* ── MOBILE ── */
+@media (max-width: 600px) {
+  .inst-inner { flex-direction: column; gap: 16px; }
   .inst-divider { display: none; }
-  .inst-stats { flex-direction: row; }
   .inst-stat-item { text-align: left; }
-  .stats-row { gap: 16px; flex-wrap: wrap; }
+  .stats-row { gap: 14px; }
   .articles-grid { grid-template-columns: 1fr; }
   .filter-btn { padding: 7px 10px; font-size: 11px; }
+  .search-row { gap: 6px; }
 }
 </style>
 </head>
@@ -314,7 +359,6 @@ body {
 <!-- INSTITUTIONAL HEADER -->
 <div class="inst-header">
   <div class="inst-inner">
-
     <div class="inst-badge">
       <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
         <path stroke-linecap="round" stroke-linejoin="round"
@@ -330,23 +374,15 @@ body {
         <span class="inst-tag"><span class="inst-tag-dot" style="background:#24418F"></span>Cognitive Performance</span>
         <span class="inst-tag"><span class="inst-tag-dot" style="background:#D2042D"></span>Physical Performance</span>
         <span class="inst-tag"><span class="inst-tag-dot" style="background:#C8893A"></span>Foundational Health &amp; Longevity</span>
-        <span class="inst-tag"><span class="inst-tag-dot" style="background:#048142"></span>GMP Compliant · Third-Party Tested</span>
       </div>
     </div>
 
     <div class="inst-divider"></div>
 
-    <div class="inst-stats">
-      <div class="inst-stat-item">
-        <span class="inst-stat-num" id="hdr-total">—</span>
-        <span class="inst-stat-label">Briefs Published</span>
-      </div>
-      <div class="inst-stat-item">
-        <span class="inst-stat-num" id="hdr-products">3</span>
-        <span class="inst-stat-label">Product Lines</span>
-      </div>
+    <div class="inst-stat-item">
+      <span class="inst-stat-num" id="hdr-total">—</span>
+      <span class="inst-stat-label">Briefs Published</span>
     </div>
-
   </div>
 
   <div class="inst-notice">
@@ -355,7 +391,7 @@ body {
   </div>
 </div>
 
-<!-- LIBRARY CONTENT -->
+<!-- LIBRARY -->
 <div class="lib-wrap">
 
   <div class="search-row">
@@ -421,7 +457,9 @@ const PROD_CAT = {
   general:   'Research Briefs'
 };
 
+const PREVIEW_COUNT = 2;
 let all = [], activeFilter = 'all', query = '';
+const expandedCats = new Set();
 
 async function load() {
   try {
@@ -439,7 +477,9 @@ async function load() {
   }
 }
 
-function cat(a) { return a.product && PROD_CAT[a.product] ? PROD_CAT[a.product] : 'Research Briefs'; }
+function cat(a) {
+  return a.product && PROD_CAT[a.product] ? PROD_CAT[a.product] : 'Research Briefs';
+}
 
 function fmt(d) {
   if (!d) return '';
@@ -454,6 +494,17 @@ function updateStats() {
   document.getElementById('cog-count').textContent   = all.filter(a => cat(a) === 'Cognitive Performance').length;
   document.getElementById('perf-count').textContent  = all.filter(a => cat(a) === 'Physical Performance').length;
   document.getElementById('lon-count').textContent   = all.filter(a => cat(a) === 'Foundational Health and Longevity').length;
+}
+
+function cardHtml(a, cfg) {
+  const url   = a.shopify_url || '#';
+  const title = a.title || 'Untitled';
+  const date  = fmt(a.published_at);
+  return '<a href="' + url + '" target="_blank" class="article-card" style="border-left-color:' + cfg.color + '">'
+    + '<div class="card-date">' + date + '</div>'
+    + '<div class="card-title">' + title + '<span class="card-arrow">&#x2192;</span></div>'
+    + '<span class="card-badge" style="background:' + cfg.color + '">' + cfg.label + '</span>'
+    + '</a>';
 }
 
 function render() {
@@ -473,36 +524,89 @@ function render() {
     return;
   }
 
+  const isAll = (activeFilter === 'all' && !query);
   const order = ['Cognitive Performance','Physical Performance','Foundational Health and Longevity','Research Briefs'];
   let html = '';
+
   for (const c of order) {
     const items = filtered.filter(a => cat(a) === c);
     if (!items.length) continue;
     const cfg = CATS[c] || { color: '#A3988B', label: c };
-    html += '<div class="category-section">'
-      + '<div class="category-header">'
+    const isExpanded = expandedCats.has(c) || !isAll;
+    const shown = isAll && !isExpanded ? items.slice(0, PREVIEW_COUNT) : items;
+    const remaining = items.length - PREVIEW_COUNT;
+
+    html += '<div class="category-section" data-cat="' + c + '">'
+      + '<div class="category-header" onclick="toggleCat(\'' + c.replace(/'/g, "\\'") + '\')">'
       + '<div class="cat-bar" style="background:' + cfg.color + '"></div>'
       + '<span class="cat-title">' + c + '</span>'
       + '<span class="cat-count">' + items.length + ' article' + (items.length !== 1 ? 's' : '') + '</span>'
+      + '<svg class="cat-chevron' + (isExpanded && isAll ? ' open' : '') + '" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="m19 9-7 7-7-7"/></svg>'
       + '</div>'
-      + '<div class="articles-grid">'
-      + items.map(a => {
-          const url  = a.shopify_url || '#';
-          const title = a.title || 'Untitled';
-          const date  = fmt(a.published_at);
-          return '<a href="' + url + '" target="_blank" class="article-card" style="border-left-color:' + cfg.color + '">'
-            + '<div class="card-date">' + date + '</div>'
-            + '<div class="card-title">' + title + '<span class="card-arrow">&#x2192;</span></div>'
-            + '<span class="card-badge" style="background:' + cfg.color + '">' + cfg.label + '</span>'
-            + '</a>';
-        }).join('')
-      + '</div></div>';
+      + '<div class="articles-grid" id="grid-' + c.replace(/\s+/g, '-') + '">'
+      + shown.map(a => cardHtml(a, cfg)).join('')
+      + '</div>';
+
+    if (isAll && !isExpanded && remaining > 0) {
+      html += '<div class="show-more-wrap">'
+        + '<button class="show-more-btn" id="btn-' + c.replace(/\s+/g, '-') + '" onclick="expandCat(\'' + c.replace(/'/g, "\\'") + '\')">'
+        + 'Show ' + remaining + ' more'
+        + '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="m19 9-7 7-7-7"/></svg>'
+        + '</button></div>';
+    }
+
+    html += '</div>';
   }
+
   document.getElementById('library-content').innerHTML = html;
+  animateCards();
+  notifyHeight();
+}
+
+function toggleCat(c) {
+  if (activeFilter !== 'all' || query) return;
+  if (expandedCats.has(c)) {
+    expandedCats.delete(c);
+  } else {
+    expandedCats.add(c);
+  }
+  render();
+}
+
+function expandCat(c) {
+  expandedCats.add(c);
+  render();
+}
+
+// Scroll-triggered fade-in
+function animateCards() {
+  const cards = document.querySelectorAll('.article-card');
+  if ('IntersectionObserver' in window) {
+    const io = new IntersectionObserver((entries) => {
+      entries.forEach((e, i) => {
+        if (e.isIntersecting) {
+          setTimeout(() => e.target.classList.add('visible'), i * 40);
+          io.unobserve(e.target);
+        }
+      });
+    }, { threshold: 0.05, rootMargin: '0px 0px -20px 0px' });
+    cards.forEach(c => io.observe(c));
+  } else {
+    cards.forEach(c => c.classList.add('visible'));
+  }
+}
+
+// Tell parent iframe to resize
+function notifyHeight() {
+  setTimeout(() => {
+    const h = document.body.scrollHeight;
+    window.parent.postMessage({ type: 'hn-library-height', height: h }, '*');
+  }, 300);
 }
 
 document.getElementById('search').addEventListener('input', e => {
   query = e.target.value.trim();
+  expandedCats.clear();
   render();
 });
 
@@ -511,6 +615,7 @@ document.querySelectorAll('.filter-btn').forEach(btn => {
     document.querySelectorAll('.filter-btn').forEach(b => b.classList.remove('active'));
     btn.classList.add('active');
     activeFilter = btn.dataset.filter;
+    expandedCats.clear();
     render();
   });
 });
