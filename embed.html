@@ -13,9 +13,167 @@ body {
   color: #2C2A27;
 }
 
+/* ── INSTITUTIONAL HEADER ── */
+.inst-header {
+  background: #F5F3F0;
+  border-top: 4px solid #A3988B;
+  border-bottom: 1px solid #e0dbd4;
+  padding: 36px 0 32px;
+  margin-bottom: 36px;
+}
+
+.inst-inner {
+  max-width: 860px;
+  margin: 0 auto;
+  padding: 0 24px;
+  display: flex;
+  gap: 40px;
+  align-items: flex-start;
+}
+
+.inst-badge {
+  flex-shrink: 0;
+  width: 64px;
+  height: 64px;
+  background: #A3988B;
+  border-radius: 10px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.inst-badge svg {
+  width: 32px;
+  height: 32px;
+  color: white;
+}
+
+.inst-text { flex: 1; }
+
+.inst-eyebrow {
+  font-size: 10px;
+  font-weight: 500;
+  color: #A3988B;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  margin-bottom: 8px;
+}
+
+.inst-title {
+  font-size: 22px;
+  font-weight: 600;
+  color: #2C2A27;
+  letter-spacing: -0.01em;
+  margin-bottom: 10px;
+  line-height: 1.2;
+}
+
+.inst-desc {
+  font-size: 14px;
+  color: #5a5550;
+  line-height: 1.7;
+  max-width: 600px;
+  margin-bottom: 20px;
+}
+
+.inst-tags {
+  display: flex;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+
+.inst-tag {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 5px 12px;
+  background: white;
+  border: 1px solid #d4cec6;
+  border-radius: 20px;
+  font-size: 11px;
+  color: #5a5550;
+}
+
+.inst-tag-dot {
+  width: 7px;
+  height: 7px;
+  border-radius: 50%;
+}
+
+.inst-divider {
+  width: 1px;
+  background: #d4cec6;
+  align-self: stretch;
+  flex-shrink: 0;
+}
+
+.inst-stats {
+  flex-shrink: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+  padding-top: 4px;
+}
+
+.inst-stat-item {
+  text-align: right;
+}
+
+.inst-stat-num {
+  font-size: 28px;
+  font-weight: 600;
+  color: #2C2A27;
+  line-height: 1;
+  display: block;
+}
+
+.inst-stat-label {
+  font-size: 10px;
+  color: #9a9590;
+  text-transform: uppercase;
+  letter-spacing: 0.07em;
+  margin-top: 3px;
+  display: block;
+}
+
+.inst-notice {
+  max-width: 860px;
+  margin: 0 auto;
+  padding: 10px 24px 0;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.inst-notice-bar {
+  width: 3px;
+  height: 32px;
+  background: #048142;
+  border-radius: 2px;
+  flex-shrink: 0;
+}
+
+.inst-notice p {
+  font-size: 11px;
+  color: #7a7570;
+  line-height: 1.5;
+}
+
+.inst-notice strong {
+  color: #2C2A27;
+  font-weight: 500;
+}
+
+/* ── LIBRARY CONTENT ── */
+.lib-wrap {
+  max-width: 860px;
+  margin: 0 auto;
+  padding: 0 24px 60px;
+}
+
 .search-row {
   display: flex;
-  gap: 10px;
+  gap: 8px;
   align-items: center;
   margin-bottom: 16px;
   flex-wrap: wrap;
@@ -41,7 +199,7 @@ body {
   padding: 9px 14px 9px 36px;
   border: 1px solid #d4cec6;
   border-radius: 8px;
-  font-size: 14px;
+  font-size: 13px;
   font-family: inherit;
   color: #2C2A27;
   outline: none;
@@ -53,12 +211,12 @@ body {
 #search::placeholder { color: #b0a89f; }
 
 .filter-btn {
-  padding: 8px 16px;
+  padding: 8px 14px;
   border-radius: 8px;
   border: 1px solid #d4cec6;
   background: white;
   color: #7a7570;
-  font-size: 13px;
+  font-size: 12px;
   font-family: inherit;
   cursor: pointer;
   transition: all 0.15s;
@@ -70,17 +228,17 @@ body {
 
 .stats-row {
   display: flex;
-  gap: 28px;
-  padding: 12px 0;
-  margin-bottom: 24px;
+  gap: 24px;
+  padding: 10px 0;
+  margin-bottom: 28px;
   border-top: 1px solid #e8e3dc;
   border-bottom: 1px solid #e8e3dc;
 }
 
 .stat { display: flex; align-items: center; gap: 6px; }
-.stat-dot { width: 8px; height: 8px; border-radius: 50%; }
-.stat-num { font-size: 18px; font-weight: 600; color: #2C2A27; }
-.stat-label { font-size: 11px; color: #9a9590; text-transform: uppercase; letter-spacing: 0.06em; }
+.stat-dot { width: 7px; height: 7px; border-radius: 50%; }
+.stat-num { font-size: 16px; font-weight: 600; color: #2C2A27; }
+.stat-label { font-size: 10px; color: #9a9590; text-transform: uppercase; letter-spacing: 0.06em; }
 
 .category-section { margin-bottom: 40px; }
 
@@ -89,18 +247,18 @@ body {
   align-items: center;
   gap: 10px;
   margin-bottom: 14px;
-  padding-bottom: 12px;
+  padding-bottom: 10px;
   border-bottom: 1.5px solid #e8e3dc;
 }
 
-.cat-bar { width: 4px; height: 20px; border-radius: 2px; }
+.cat-bar { width: 4px; height: 18px; border-radius: 2px; }
 .cat-title { font-size: 11px; font-weight: 500; text-transform: uppercase; letter-spacing: 0.1em; color: #2C2A27; }
 .cat-count { font-size: 11px; color: #b0a89f; margin-left: auto; }
 
 .articles-grid {
   display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
-  gap: 12px;
+  grid-template-columns: repeat(auto-fill, minmax(260px, 1fr));
+  gap: 10px;
 }
 
 .article-card {
@@ -108,7 +266,7 @@ body {
   border: 1px solid #e8e3dc;
   border-left: 3px solid transparent;
   border-radius: 8px;
-  padding: 16px;
+  padding: 14px 16px;
   text-decoration: none;
   color: inherit;
   display: block;
@@ -116,21 +274,21 @@ body {
 }
 
 .article-card:hover {
-  box-shadow: 0 2px 12px rgba(0,0,0,0.06);
+  box-shadow: 0 2px 10px rgba(0,0,0,0.06);
   transform: translateY(-1px);
 }
 
-.card-date { font-size: 11px; color: #b0a89f; text-transform: uppercase; letter-spacing: 0.05em; margin-bottom: 6px; }
-.card-title { font-size: 13px; font-weight: 500; color: #2C2A27; line-height: 1.5; margin-bottom: 10px; }
-.card-badge { display: inline-block; padding: 3px 10px; border-radius: 20px; font-size: 10px; font-weight: 500; color: white; }
-.card-arrow { float: right; font-size: 14px; color: #d4cec6; margin-top: 1px; }
+.card-date { font-size: 10px; color: #b0a89f; text-transform: uppercase; letter-spacing: 0.05em; margin-bottom: 5px; }
+.card-title { font-size: 13px; font-weight: 500; color: #2C2A27; line-height: 1.45; margin-bottom: 10px; }
+.card-badge { display: inline-block; padding: 2px 9px; border-radius: 20px; font-size: 10px; font-weight: 500; color: white; }
+.card-arrow { float: right; font-size: 13px; color: #d4cec6; margin-top: 1px; }
 
 .empty { text-align: center; padding: 60px 20px; color: #b0a89f; }
 .empty p { font-size: 14px; }
 
 .loading { text-align: center; padding: 60px 20px; }
 .spinner {
-  width: 28px; height: 28px;
+  width: 26px; height: 26px;
   border: 2px solid #e8e3dc;
   border-top-color: #A3988B;
   border-radius: 50%;
@@ -140,56 +298,109 @@ body {
 @keyframes spin { to { transform: rotate(360deg); } }
 .loading p { font-size: 13px; color: #b0a89f; }
 
-@media (max-width: 600px) {
+@media (max-width: 640px) {
+  .inst-inner { flex-direction: column; gap: 20px; }
+  .inst-divider { display: none; }
+  .inst-stats { flex-direction: row; }
+  .inst-stat-item { text-align: left; }
   .stats-row { gap: 16px; flex-wrap: wrap; }
   .articles-grid { grid-template-columns: 1fr; }
-  .filter-btn { padding: 7px 12px; font-size: 12px; }
+  .filter-btn { padding: 7px 10px; font-size: 11px; }
 }
 </style>
 </head>
 <body>
 
-<div class="search-row">
-  <div class="search-wrap">
-    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-      <circle cx="11" cy="11" r="8"/><path d="m21 21-4.35-4.35"/>
-    </svg>
-    <input type="text" id="search" placeholder="Search research briefs...">
+<!-- INSTITUTIONAL HEADER -->
+<div class="inst-header">
+  <div class="inst-inner">
+
+    <div class="inst-badge">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
+        <path stroke-linecap="round" stroke-linejoin="round"
+          d="M12 6.042A8.967 8.967 0 0 0 6 3.75c-1.052 0-2.062.18-3 .512v14.25A8.987 8.987 0 0 1 6 18c2.305 0 4.408.867 6 2.292m0-14.25a8.966 8.966 0 0 1 6-2.292c1.052 0 2.062.18 3 .512v14.25A8.987 8.987 0 0 0 18 18a8.967 8.967 0 0 0-6 2.292m0-14.25v14.25"/>
+      </svg>
+    </div>
+
+    <div class="inst-text">
+      <div class="inst-eyebrow">Holistic Nutrition · Research Division</div>
+      <h1 class="inst-title">Research Library</h1>
+      <p class="inst-desc">Holistic Nutrition publishes peer-reviewed research briefs, ingredient factsheets, and clinical evidence summaries. Every article is grounded in published literature, written to be understood by both practitioners and informed consumers, and updated as new evidence emerges.</p>
+      <div class="inst-tags">
+        <span class="inst-tag"><span class="inst-tag-dot" style="background:#24418F"></span>Cognitive Performance</span>
+        <span class="inst-tag"><span class="inst-tag-dot" style="background:#D2042D"></span>Physical Performance</span>
+        <span class="inst-tag"><span class="inst-tag-dot" style="background:#C8893A"></span>Foundational Health &amp; Longevity</span>
+        <span class="inst-tag"><span class="inst-tag-dot" style="background:#048142"></span>GMP Compliant · Third-Party Tested</span>
+      </div>
+    </div>
+
+    <div class="inst-divider"></div>
+
+    <div class="inst-stats">
+      <div class="inst-stat-item">
+        <span class="inst-stat-num" id="hdr-total">—</span>
+        <span class="inst-stat-label">Briefs Published</span>
+      </div>
+      <div class="inst-stat-item">
+        <span class="inst-stat-num" id="hdr-products">3</span>
+        <span class="inst-stat-label">Product Lines</span>
+      </div>
+    </div>
+
   </div>
-  <button class="filter-btn active" data-filter="all">All</button>
-  <button class="filter-btn" data-filter="Cognitive Performance">Cognition</button>
-  <button class="filter-btn" data-filter="Physical Performance">Performance</button>
-  <button class="filter-btn" data-filter="Foundational Health and Longevity">Longevity</button>
-  <button class="filter-btn" data-filter="Research Briefs">General</button>
+
+  <div class="inst-notice">
+    <div class="inst-notice-bar"></div>
+    <p><strong>Disclaimer:</strong> These briefs are for educational purposes only and do not constitute medical advice. Statements have not been evaluated by the FDA. Products are not intended to diagnose, treat, cure, or prevent any disease.</p>
+  </div>
 </div>
 
-<div class="stats-row">
-  <div class="stat">
-    <span class="stat-num" id="total-count">—</span>
-    <span class="stat-label">Articles</span>
-  </div>
-  <div class="stat">
-    <span class="stat-dot" style="background:#24418F"></span>
-    <span class="stat-num" id="cog-count">—</span>
-    <span class="stat-label">Cognition</span>
-  </div>
-  <div class="stat">
-    <span class="stat-dot" style="background:#D2042D"></span>
-    <span class="stat-num" id="perf-count">—</span>
-    <span class="stat-label">Performance</span>
-  </div>
-  <div class="stat">
-    <span class="stat-dot" style="background:#C8893A"></span>
-    <span class="stat-num" id="lon-count">—</span>
-    <span class="stat-label">Longevity</span>
-  </div>
-</div>
+<!-- LIBRARY CONTENT -->
+<div class="lib-wrap">
 
-<div id="library-content">
-  <div class="loading">
-    <div class="spinner"></div>
-    <p>Loading research library...</p>
+  <div class="search-row">
+    <div class="search-wrap">
+      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+        <circle cx="11" cy="11" r="8"/><path d="m21 21-4.35-4.35"/>
+      </svg>
+      <input type="text" id="search" placeholder="Search research briefs and factsheets...">
+    </div>
+    <button class="filter-btn active" data-filter="all">All</button>
+    <button class="filter-btn" data-filter="Cognitive Performance">Cognition</button>
+    <button class="filter-btn" data-filter="Physical Performance">Performance</button>
+    <button class="filter-btn" data-filter="Foundational Health and Longevity">Longevity</button>
+    <button class="filter-btn" data-filter="Research Briefs">General</button>
   </div>
+
+  <div class="stats-row">
+    <div class="stat">
+      <span class="stat-num" id="total-count">—</span>
+      <span class="stat-label">Articles</span>
+    </div>
+    <div class="stat">
+      <span class="stat-dot" style="background:#24418F"></span>
+      <span class="stat-num" id="cog-count">—</span>
+      <span class="stat-label">Cognition</span>
+    </div>
+    <div class="stat">
+      <span class="stat-dot" style="background:#D2042D"></span>
+      <span class="stat-num" id="perf-count">—</span>
+      <span class="stat-label">Performance</span>
+    </div>
+    <div class="stat">
+      <span class="stat-dot" style="background:#C8893A"></span>
+      <span class="stat-num" id="lon-count">—</span>
+      <span class="stat-label">Longevity</span>
+    </div>
+  </div>
+
+  <div id="library-content">
+    <div class="loading">
+      <div class="spinner"></div>
+      <p>Loading research library...</p>
+    </div>
+  </div>
+
 </div>
 
 <script>
@@ -224,7 +435,7 @@ async function load() {
     render();
   } catch(e) {
     document.getElementById('library-content').innerHTML =
-      '<div class="empty"><p>Unable to load articles. Please refresh.</p></div>';
+      '<div class="empty"><p>Unable to load articles. Please refresh the page.</p></div>';
   }
 }
 
@@ -237,10 +448,12 @@ function fmt(d) {
 }
 
 function updateStats() {
-  document.getElementById('total-count').textContent = all.length;
-  document.getElementById('cog-count').textContent  = all.filter(a => cat(a) === 'Cognitive Performance').length;
-  document.getElementById('perf-count').textContent = all.filter(a => cat(a) === 'Physical Performance').length;
-  document.getElementById('lon-count').textContent  = all.filter(a => cat(a) === 'Foundational Health and Longevity').length;
+  const total = all.length;
+  document.getElementById('total-count').textContent = total;
+  document.getElementById('hdr-total').textContent   = total;
+  document.getElementById('cog-count').textContent   = all.filter(a => cat(a) === 'Cognitive Performance').length;
+  document.getElementById('perf-count').textContent  = all.filter(a => cat(a) === 'Physical Performance').length;
+  document.getElementById('lon-count').textContent   = all.filter(a => cat(a) === 'Foundational Health and Longevity').length;
 }
 
 function render() {
@@ -274,9 +487,9 @@ function render() {
       + '</div>'
       + '<div class="articles-grid">'
       + items.map(a => {
-          const url = a.shopify_url || '#';
+          const url  = a.shopify_url || '#';
           const title = a.title || 'Untitled';
-          const date = fmt(a.published_at);
+          const date  = fmt(a.published_at);
           return '<a href="' + url + '" target="_blank" class="article-card" style="border-left-color:' + cfg.color + '">'
             + '<div class="card-date">' + date + '</div>'
             + '<div class="card-title">' + title + '<span class="card-arrow">&#x2192;</span></div>'
