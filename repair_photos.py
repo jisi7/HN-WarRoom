@@ -23,22 +23,10 @@ client = Anthropic(api_key=ANTHROPIC_API_KEY)
 # Articles to repair — add/remove as needed
 REPAIR_LIST = [
     {
-        "id":          "eb4c2c57-2fa2-48a8-b94d-9d753179025b",
-        "title":       "Alpha-GPC Dosing for Cognitive Performance: Evidence-Based Guidelines",
-        "shopify_url": "https://holisticnutrition.us/blogs/research-studies/alpha-gpc-dosing-for-cognitive-performance-evidence-based-guidelines",
-        "product":     "focase"
-    },
-    {
         "id":          "036c713c-d9a0-440d-a758-4909a7d9c45c",
         "title":       "Micronized Creatine Monohydrate: Solubility, Bioavailability, and Clinical Advantages",
         "shopify_url": "https://holisticnutrition.us/blogs/research-studies/micronized-creatine-monohydrate-solubility-bioavailability-and-clinical-advantages",
         "product":     "creatine"
-    },
-    {
-        "id":          "2229e9e1-5471-490f-b329-5a6583b7aca8",
-        "title":       "Vitamin D Deficiency and Indoor Lifestyles: Evidence for Modern Supplementation",
-        "shopify_url": "https://holisticnutrition.us/blogs/research-studies/vitamin-d-deficiency-and-indoor-lifestyles-evidence-for-modern-supplementation",
-        "product":     "vitamin_d"
     },
     {
         "id":          "fdfbba47-e05a-4b7d-8464-8db255740689",
@@ -47,22 +35,10 @@ REPAIR_LIST = [
         "product":     "vitamin_d"
     },
     {
-        "id":          "64f64d8f-57b3-43c7-9261-02df7b9a3209",
-        "title":       "Creatine Loading Phase: Evaluating Rapid Saturation Protocols vs. Standard Dosing",
-        "shopify_url": "https://holisticnutrition.us/blogs/research-studies/creatine-loading-phase-evaluating-rapid-saturation-protocols-vs-standard-dosing",
-        "product":     "creatine"
-    },
-    {
         "id":          "044fce3d-520f-4783-ab9f-3fd7840eeba0",
         "title":       "Creatine Monohydrate vs HCl: Comparative Bioavailability and Clinical Evidence",
         "shopify_url": "https://holisticnutrition.us/blogs/research-studies/creatine-monohydrate-vs-hcl-comparative-bioavailability-and-clinical-evidence",
         "product":     "creatine"
-    },
-    {
-        "id":          "c2606933-4095-4d03-a01d-6c9b0dad158b",
-        "title":       "Lion's Mane Mushroom and Nerve Growth Factor",
-        "shopify_url": "https://holisticnutrition.us/blogs/research-studies/lions-mane-mushroom-and-nerve-growth-factor-evaluating-hericenone-and-erinacine-mechanisms-in-neuroplasticity",
-        "product":     "focase"
     },
 ]
 
@@ -238,7 +214,7 @@ def run():
             print(f"    [ERROR] Image generation failed for this article")
 
         print()
-        time.sleep(2)  # Rate limit between articles
+        time.sleep(10)  # Rate limit between articles
 
     print(f"{'='*60}")
     print(f"  REPAIR COMPLETE")
