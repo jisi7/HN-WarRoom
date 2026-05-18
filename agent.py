@@ -541,40 +541,15 @@ def generate_hero_image(photo_prompt, product):
     if REPLICATE_API_KEY:
         try:
             # Realistic biology-style image direction per product
-            style_map = {
-                "creatine": (
-                    "Photorealistic scientific microscopy photograph. "
-                    "Muscle fiber cross-sections, mitochondrial ultrastructure, or cellular energy systems. "
-                    "Real laboratory imaging aesthetic, fluorescence microscopy color palette of deep blues and amber. "
-                    "Shot on research-grade equipment. Looks like Nature journal photography."
-                ),
-                "focase": (
-                    "Photorealistic neuroscience photography. "
-                    "Actual neural tissue, synaptic structures, or brain cross-section imagery. "
-                    "Real confocal microscopy aesthetic. Luminous blues and golds against dark background. "
-                    "Scientific journal cover quality. Not illustrated — photographic."
-                ),
-                "vitamin_d": (
-                    "Photorealistic molecular biology photography. "
-                    "Cellular receptor structures, bone tissue cross-section, or vitamin D molecular model. "
-                    "Clean scientific imaging, warm amber and cream tones. "
-                    "Nature journal quality. Photographic not illustrated."
-                ),
-                "general": (
-                    "Photorealistic editorial macro photograph. "
-                    "Real organic textures, natural materials, earth tones, warm amber and cream palette. "
-                    "Shot on medium format camera, shallow depth of field. "
-                    "No illustration, no CGI — real photograph."
-                )
-            }
-            style = style_map.get(product, style_map["general"])
             prompt = (
-                f"DSLR RAW photograph. {style} "
-                f"{photo_prompt} "
+                f"Scientific biology photograph. {photo_prompt} "
                 f"Ultra-wide 3:1 banner format. "
+                f"Style: real scientific or biological photography — could be cellular imagery, "
+                f"molecular structures, anatomical detail, biological cross-sections, lab specimens, "
+                f"or any imagery that feels like it belongs in Nature or Science journal. "
                 f"Photorealistic — not illustrated, not CGI, not AI art style, not digital painting. "
-                f"No text overlays, no people, no product bottles, no lab coats in frame. "
-                f"High resolution RAW photograph, sharp focus."
+                f"High resolution, sharp focus, scientific aesthetic. "
+                f"No text overlays, no people, no product bottles, no lab equipment in foreground."
             )
 
             headers = {
