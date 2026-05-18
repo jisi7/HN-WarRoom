@@ -1,7 +1,8 @@
 #!/usr/bin/env python3
 """
-Holistic Nutrition Content Agent v4 — Full Competitive Intelligence
+Holistic Nutrition Content Agent v5
 Firecrawl + DataForSEO + Claude → Best keyword gap → Article → Shopify → Library
+Fixes: realistic images, correct article URLs, image upload retry
 """
 
 import os, json, random, requests, datetime, base64, io, re, time
@@ -80,7 +81,6 @@ Rhodiola (3% Rosavins) 150mg, Caffeine 75mg, BioPerine 7mg.
 NO Lion's Mane. Sweetened with Stevia + Thaumatin only.
 """
 
-# High-value seed keywords from competitive analysis (Byword data + our research)
 SEED_KEYWORDS = {
     "creatine": [
         "creatine in coffee", "creatine for brain health cognitive performance",
@@ -131,7 +131,6 @@ SEED_KEYWORDS = {
     ]
 }
 
-# Competitors to scrape with Firecrawl
 COMPETITORS = [
     {"url": "https://examine.com/supplements/", "name": "Examine.com"},
     {"url": "https://www.healthline.com/nutrition", "name": "Healthline"},
@@ -180,7 +179,7 @@ CRITICAL: Never use backslashes in HTML. No escape sequences in JSON strings.
 OUTPUT — ONLY valid JSON:
 {
   "title": "...",
-  "photo_prompt": "Cinematic editorial photograph of [specific natural element related to topic]. Natural earth tones, warm amber and green palette, shallow depth of field, atmospheric lighting, no text, no people, no bottles.",
+  "photo_prompt": "Specific visual description for [topic] — describe exactly what biological or scientific subject should appear: e.g. 'cross-section of human muscle fiber showing mitochondrial density' or 'neural synaptic connections with myelin sheath detail' or 'vitamin D3 molecular structure with cholesterol precursor'. Be specific and scientific.",
   "meta_title": "... max 55 chars",
   "meta_description": "... max 150 chars",
   "opening_quote": {"text": "...", "source": "..."},
@@ -227,7 +226,6 @@ def get_published_topics():
     return topics
 
 def get_cached_competitor_topics():
-    """Get competitor topics cached in Supabase — refreshed weekly."""
     rows = sb("get", "agent_runs", params={
         "agent_name": "eq.Firecrawl Scraper",
         "status": "eq.completed",
@@ -238,34 +236,32 @@ def get_cached_competitor_topics():
         return None, None
     last_run = rows[0].get("completed_at", "")
     if last_run:
-        last_dt = datetime.datetime.fromisoformat(last_run.replace("Z", "+00:00").replace("+00:00", ""))
-        days_ago = (datetime.datetime.utcnow() - last_dt.replace(tzinfo=None)).days
-        if days_ago < 7:
-            # Return cached topics from message field
-            try:
+        try:
+            last_dt  = datetime.datetime.fromisoformat(last_run.replace("Z", "").replace("+00:00", ""))
+            days_ago = (datetime.datetime.utcnow() - last_dt).days
+            if days_ago < 7:
                 cached = json.loads(rows[0].get("message", "{}"))
                 return cached.get("topics", []), days_ago
-            except:
-                pass
+        except: pass
     return None, None
 
 def cache_competitor_topics(topics):
     sb("post", "agent_runs", json={
-        "agent_name": "Firecrawl Scraper",
-        "status": "completed",
-        "message": json.dumps({"topics": topics}),
-        "completed_at": datetime.datetime.utcnow().isoformat()
+        "agent_name":    "Firecrawl Scraper",
+        "status":        "completed",
+        "message":       json.dumps({"topics": topics}),
+        "completed_at":  datetime.datetime.utcnow().isoformat()
     })
 
 def log_run(status, message, articles=0, errors=None, duration=None):
     sb("post", "agent_runs", json={
-        "agent_name": "Content Agent v4",
-        "status": status,
-        "message": message,
+        "agent_name":         "Content Agent v5",
+        "status":             status,
+        "message":            message,
         "articles_processed": articles,
-        "errors": errors,
-        "duration_seconds": duration,
-        "completed_at": datetime.datetime.utcnow().isoformat()
+        "errors":             errors,
+        "duration_seconds":   duration,
+        "completed_at":       datetime.datetime.utcnow().isoformat()
     })
 
 def insert_article(data):
@@ -275,47 +271,34 @@ def insert_article(data):
 def update_article(aid, data):
     sb("patch", f"articles?id=eq.{aid}", json=data)
 
-# ── FIRECRAWL — COMPETITOR SCRAPING ──────────────────────────────────────────
+# ── FIRECRAWL ─────────────────────────────────────────────────────────────────
 def scrape_competitor_topics():
-    """Scrape competitor sites weekly to extract their topic coverage."""
     print("  [Firecrawl] Scraping competitor sites...")
     if not FIRECRAWL_API_KEY:
         print("  [Firecrawl] No API key — skipping")
         return []
 
     all_topics = []
-    headers = {"Authorization": f"Bearer {FIRECRAWL_API_KEY}", "Content-Type": "application/json"}
+    headers    = {"Authorization": f"Bearer {FIRECRAWL_API_KEY}", "Content-Type": "application/json"}
 
     for competitor in COMPETITORS:
         try:
             print(f"  [Firecrawl] Scraping {competitor['name']}...")
-            r = requests.post(
+            r    = requests.post(
                 "https://api.firecrawl.dev/v1/scrape",
                 headers=headers,
-                json={
-                    "url": competitor["url"],
-                    "formats": ["markdown"],
-                    "onlyMainContent": True,
-                    "waitFor": 2000
-                },
+                json={"url": competitor["url"], "formats": ["markdown"],
+                      "onlyMainContent": True, "waitFor": 2000},
                 timeout=30
             )
             data = r.json()
             if data.get("success"):
                 content = data.get("data", {}).get("markdown", "")
-                # Extract article titles/links from markdown
-                lines = content.split("\n")
-                for line in lines:
+                for line in content.split("\n"):
                     line = line.strip()
-                    # Extract text from markdown links [text](url) or headers
-                    link_match = re.findall(r'\[([^\]]+)\]\(', line)
-                    for match in link_match:
-                        if len(match) > 10 and len(match) < 150:
-                            all_topics.append({
-                                "title": match.strip(),
-                                "source": competitor["name"]
-                            })
-                    # Also grab heading lines
+                    for match in re.findall(r'\[([^\]]+)\]\(', line):
+                        if 10 < len(match) < 150:
+                            all_topics.append({"title": match.strip(), "source": competitor["name"]})
                     if line.startswith("#") and len(line) > 15:
                         clean = re.sub(r'^#+\s*', '', line).strip()
                         if clean:
@@ -329,122 +312,94 @@ def scrape_competitor_topics():
     print(f"  [Firecrawl] Scraped {len(all_topics)} competitor topics")
     return all_topics
 
-# ── DATAFORSEO — SEARCH VOLUME VALIDATION ─────────────────────────────────────
+# ── DATAFORSEO ────────────────────────────────────────────────────────────────
 def get_search_volumes(keywords):
-    """Get search volume and competition data for a list of keywords."""
-    if not DATAFORSEO_LOGIN or not DATAFORSEO_PASSWORD:
-        print("  [DataForSEO] No credentials — skipping volume check")
+    if not DATAFORSEO_LOGIN or not DATAFORSEO_PASSWORD or not keywords:
+        print("  [DataForSEO] Skipping — no credentials or keywords")
         return {}
-    if not keywords:
-        return {}
-
     print(f"  [DataForSEO] Checking volume for {len(keywords)} keywords...")
     try:
-        import base64 as b64
-        auth = b64.b64encode(f"{DATAFORSEO_LOGIN}:{DATAFORSEO_PASSWORD}".encode()).decode()
-        payload = [{
-            "keywords": keywords[:100],  # max 100 per request
-            "location_code": 2840,       # United States
-            "language_code": "en",
-            "include_serp_info": False
-        }]
-        r = requests.post(
+        auth    = base64.b64encode(f"{DATAFORSEO_LOGIN}:{DATAFORSEO_PASSWORD}".encode()).decode()
+        payload = [{"keywords": keywords[:100], "location_code": 2840, "language_code": "en",
+                    "include_serp_info": False}]
+        r       = requests.post(
             "https://api.dataforseo.com/v3/keywords_data/google_ads/search_volume/live",
             headers={"Authorization": f"Basic {auth}", "Content-Type": "application/json"},
-            json=payload,
-            timeout=30
+            json=payload, timeout=30
         )
-        result = r.json()
+        result  = r.json()
         volumes = {}
         if result.get("status_code") == 20000:
-            tasks = result.get("tasks", [])
-            for task in tasks:
-                items = task.get("result", []) or []
-                for item in items:
-                    kw  = item.get("keyword", "")
-                    vol = item.get("search_volume", 0) or 0
-                    cpc = item.get("cpc", 0) or 0
-                    comp = item.get("competition_index", 0) or 0
-                    volumes[kw] = {"volume": vol, "cpc": cpc, "competition": comp}
-        print(f"  [DataForSEO] Got volume data for {len(volumes)} keywords")
+            for task in result.get("tasks", []):
+                for item in (task.get("result", []) or []):
+                    kw = item.get("keyword", "")
+                    volumes[kw] = {
+                        "volume":      item.get("search_volume", 0) or 0,
+                        "cpc":         item.get("cpc", 0) or 0,
+                        "competition": item.get("competition_index", 0) or 0
+                    }
+        print(f"  [DataForSEO] Got data for {len(volumes)} keywords")
         return volumes
     except Exception as e:
         print(f"  [DataForSEO] Error: {e}")
         return {}
 
-# ── AUTONOMOUS KEYWORD SELECTION ──────────────────────────────────────────────
+# ── KEYWORD SELECTION ─────────────────────────────────────────────────────────
 def pick_best_keyword():
-    """Full competitive intelligence keyword selection."""
     print("\n  [Keyword] Starting competitive keyword research...")
 
-    # 1. Get published topics to avoid
     published = get_published_topics()
     print(f"  [Keyword] {len(published)} topics already published")
 
-    # 2. Get or refresh competitor topics
     competitor_topics, cache_age = get_cached_competitor_topics()
     if competitor_topics:
         print(f"  [Keyword] Using cached competitor data ({cache_age} days old, {len(competitor_topics)} topics)")
     else:
-        print("  [Keyword] Cache expired or empty — scraping competitors...")
+        print("  [Keyword] Cache expired — scraping competitors...")
         competitor_topics = scrape_competitor_topics()
         if competitor_topics:
             cache_competitor_topics(competitor_topics)
 
-    # 3. Build candidate keywords from seeds — filter already published
     candidates = []
     for product, keywords in SEED_KEYWORDS.items():
         for kw in keywords:
-            already_done = any(
-                kw.lower() in pub or pub in kw.lower()
-                for pub in published
-            )
+            already_done = any(kw.lower() in pub or pub in kw.lower() for pub in published)
             if not already_done:
                 candidates.append({"keyword": kw, "product": product})
 
     if not candidates:
-        print("  [Keyword] All seeds covered — generating fresh keywords via Claude...")
+        print("  [Keyword] All seeds covered — generating fresh keywords...")
         candidates = generate_fresh_keywords(published)
 
-    print(f"  [Keyword] {len(candidates)} candidate keywords available")
+    print(f"  [Keyword] {len(candidates)} candidates available")
 
-    # 4. Get search volumes for top candidates
-    candidate_keywords = [c["keyword"] for c in candidates[:50]]
-    volumes = get_search_volumes(candidate_keywords)
+    volumes = get_search_volumes([c["keyword"] for c in candidates[:50]])
 
-    # 5. Score candidates
     scored = []
     for c in candidates[:50]:
         kw   = c["keyword"]
         vol  = volumes.get(kw, {}).get("volume", 0)
         comp = volumes.get(kw, {}).get("competition", 100)
         cpc  = volumes.get(kw, {}).get("cpc", 0)
-
-        # Opportunity score: high volume + low competition + product relevance
-        if vol == 0: vol = 500  # default if not found
+        if vol == 0: vol = 500
         score = (vol * 0.4) + (cpc * 100) + ((100 - comp) * 10)
-
-        # Boost scores for product-aligned keywords
         if c["product"] in ["focase", "creatine", "vitamin_d"]:
             score *= 1.3
-
         scored.append({**c, "volume": vol, "competition": comp, "cpc": cpc, "score": score})
 
     scored.sort(key=lambda x: x["score"], reverse=True)
     top_candidates = scored[:15]
 
-    # 6. Let Claude make the final strategic decision
-    print("  [Keyword] Claude selecting best keyword from top candidates...")
+    print("  [Keyword] Claude selecting best keyword...")
     competitor_summary = ""
     if competitor_topics:
         sample = competitor_topics[:30]
-        competitor_summary = "Competitor content found:\n" + "\n".join(
+        competitor_summary = "Competitor content:\n" + "\n".join(
             f"- {t['title']} ({t['source']})" for t in sample
         )
 
     candidates_str = "\n".join(
-        f"- '{c['keyword']}' | product: {c['product']} | vol: {c['volume']}/mo | "
-        f"competition: {c['competition']} | score: {int(c['score'])}"
+        f"- '{c['keyword']}' | product: {c['product']} | vol: {c['volume']}/mo | score: {int(c['score'])}"
         for c in top_candidates
     )
 
@@ -453,28 +408,23 @@ def pick_best_keyword():
     msg = client.messages.create(
         model="claude-sonnet-4-5",
         max_tokens=400,
-        messages=[{"role": "user", "content": f"""You are the SEO strategist for Holistic Nutrition — a supplement brand selling:
+        messages=[{"role": "user", "content": f"""You are the SEO strategist for Holistic Nutrition — selling:
 1. Micronized Creatine Monohydrate (physical performance)
-2. Focase 2.0 (cognitive performance nootropic blend)
+2. Focase 2.0 (cognitive performance nootropic)
 3. Vitamin D3 + K2 (foundational health/longevity)
 
-Brand positioning: closest thing in supplements to a biotech research institution.
-Target audience: biohackers, athletes, health-conscious professionals 30-55.
+Brand: closest thing in supplements to a biotech research institution.
+Audience: biohackers, athletes, health-conscious professionals 30-55.
 
 Already published (do NOT repeat):
 {published_sample}
 
-Top keyword candidates (scored by volume + opportunity):
+Top candidates:
 {candidates_str}
 
 {competitor_summary}
 
-Pick the single best keyword to write about today. Consider:
-- Highest commercial intent aligned with our 3 products
-- Search volume vs competition balance
-- Topics where we can genuinely outrank competitors with research-grade content
-- Seasonal relevance: {datetime.datetime.utcnow().strftime('%B %Y')}
-- Campaign thinking: build topic clusters, not random articles
+Pick the single best keyword for today. Consider commercial intent, volume vs competition, topic clusters, and month: {datetime.datetime.utcnow().strftime('%B %Y')}.
 
 Return ONLY JSON:
 {{"keyword": "exact keyword", "product": "creatine|focase|vitamin_d|general", "reasoning": "one sentence", "estimated_monthly_searches": 0}}"""}]
@@ -484,34 +434,27 @@ Return ONLY JSON:
     raw = re.sub(r'^```[a-z]*\n?', '', raw)
     raw = re.sub(r'\n?```$', '', raw)
     try:
-        result = json.loads(raw.strip())
+        result  = json.loads(raw.strip())
         kw      = result["keyword"]
         product = result["product"]
         print(f"  [Keyword] Selected: '{kw}' ({product})")
         print(f"  [Keyword] Reasoning: {result.get('reasoning', '')}")
-        print(f"  [Keyword] Est. volume: {result.get('estimated_monthly_searches', 'unknown')}/mo")
         return kw, product
     except Exception as e:
-        print(f"  [Keyword] Parse error: {e} — using top scored candidate")
+        print(f"  [Keyword] Parse error: {e} — using top scored")
         top = scored[0] if scored else {"keyword": "creatine monohydrate benefits", "product": "creatine"}
         return top["keyword"], top["product"]
 
 def generate_fresh_keywords(published):
-    """Generate fresh keywords when seeds are exhausted."""
     msg = client.messages.create(
         model="claude-sonnet-4-5",
         max_tokens=800,
-        messages=[{"role": "user", "content": f"""Generate 20 new SEO keyword opportunities for a supplement brand selling creatine monohydrate, a nootropic cognitive blend (Focase), and Vitamin D3+K2.
+        messages=[{"role": "user", "content": f"""Generate 20 new SEO keywords for a supplement brand selling creatine monohydrate, a nootropic blend (Focase), and Vitamin D3+K2.
 
-Already covered topics:
+Already covered:
 {chr(10).join(f'- {p}' for p in published[:30])}
 
-Generate keywords NOT in the above list. Focus on:
-- Long-tail research questions with commercial intent
-- Ingredient mechanism deep-dives
-- Comparison articles (X vs Y)
-- Population-specific guides (for women, for athletes, for 40+)
-- Myth-busting articles
+Focus on long-tail research questions, ingredient deep-dives, comparisons, population-specific guides, myth-busting.
 
 Return ONLY JSON array:
 [{{"keyword": "...", "product": "creatine|focase|vitamin_d|general"}}]"""}]
@@ -519,15 +462,13 @@ Return ONLY JSON array:
     raw = msg.content[0].text.strip()
     raw = re.sub(r'^```[a-z]*\n?', '', raw)
     raw = re.sub(r'\n?```$', '', raw)
-    try:
-        return json.loads(raw.strip())
-    except:
-        return [{"keyword": "creatine monohydrate complete guide", "product": "creatine"}]
+    try:    return json.loads(raw.strip())
+    except: return [{"keyword": "creatine monohydrate complete guide", "product": "creatine"}]
 
 # ── GENERATE ARTICLE ──────────────────────────────────────────────────────────
 def generate_article(keyword, product):
     print(f"  [Claude] Writing article: '{keyword}'")
-    prod = PRODUCT_MAP.get(product, PRODUCT_MAP["general"])
+    prod      = PRODUCT_MAP.get(product, PRODUCT_MAP["general"])
     focase_ctx = f"\n\nFOCASE FORMULA:\n{FOCASE_2_FORMULA}" if product == "focase" else ""
 
     msg = client.messages.create(
@@ -535,8 +476,8 @@ def generate_article(keyword, product):
         max_tokens=5000,
         system=ARTICLE_SYSTEM_PROMPT,
         messages=[{"role": "user", "content":
-            f'Write a Holistic Nutrition research brief targeting the keyword: "{keyword}"\n\n'
-            f'SEO goal: rank for "{keyword}" and related long-tail variants.\n'
+            f'Write a Holistic Nutrition research brief targeting: "{keyword}"\n\n'
+            f'SEO goal: rank for "{keyword}" and related variants.\n'
             f'Product CTA: conclude with criteria aligning with {prod["name"]}.{focase_ctx}\n\n'
             f'Return ONLY valid JSON.'
         }]
@@ -546,12 +487,12 @@ def generate_article(keyword, product):
     raw = re.sub(r'\n?```$', '', raw)
 
     def safe_parse(text):
-        for attempt in [
+        for fn in [
             lambda t: json.loads(t),
             lambda t: json.loads(re.sub(r'\\(?!["\\/bfnrtu])', r'\\\\', t)),
             lambda t: json.loads(t[t.index('{'):t.rindex('}')+1])
         ]:
-            try: return attempt(text)
+            try: return fn(text)
             except: pass
         return None
 
@@ -599,43 +540,109 @@ def generate_hero_image(photo_prompt, product):
 
     if REPLICATE_API_KEY:
         try:
-            prompt = (f"{photo_prompt} Ultra-wide cinematic banner, 3:1 ratio. "
-                      "Natural earth tones, warm amber and cream. Shallow depth of field. "
-                      "Professional botanical editorial photography. Soft atmospheric lighting. "
-                      "No text, no people, no bottles. National Geographic quality.")
-            headers = {"Authorization": f"Bearer {REPLICATE_API_KEY}",
-                       "Content-Type": "application/json", "Prefer": "wait"}
+            # Realistic biology-style image direction per product
+            style_map = {
+                "creatine": (
+                    "Photorealistic scientific microscopy photograph. "
+                    "Muscle fiber cross-sections, mitochondrial ultrastructure, or cellular energy systems. "
+                    "Real laboratory imaging aesthetic, fluorescence microscopy color palette of deep blues and amber. "
+                    "Shot on research-grade equipment. Looks like Nature journal photography."
+                ),
+                "focase": (
+                    "Photorealistic neuroscience photography. "
+                    "Actual neural tissue, synaptic structures, or brain cross-section imagery. "
+                    "Real confocal microscopy aesthetic. Luminous blues and golds against dark background. "
+                    "Scientific journal cover quality. Not illustrated — photographic."
+                ),
+                "vitamin_d": (
+                    "Photorealistic molecular biology photography. "
+                    "Cellular receptor structures, bone tissue cross-section, or vitamin D molecular model. "
+                    "Clean scientific imaging, warm amber and cream tones. "
+                    "Nature journal quality. Photographic not illustrated."
+                ),
+                "general": (
+                    "Photorealistic editorial macro photograph. "
+                    "Real organic textures, natural materials, earth tones, warm amber and cream palette. "
+                    "Shot on medium format camera, shallow depth of field. "
+                    "No illustration, no CGI — real photograph."
+                )
+            }
+            style = style_map.get(product, style_map["general"])
+            prompt = (
+                f"DSLR RAW photograph. {style} "
+                f"{photo_prompt} "
+                f"Ultra-wide 3:1 banner format. "
+                f"Photorealistic — not illustrated, not CGI, not AI art style, not digital painting. "
+                f"No text overlays, no people, no product bottles, no lab coats in frame. "
+                f"High resolution RAW photograph, sharp focus."
+            )
+
+            headers = {
+                "Authorization": f"Bearer {REPLICATE_API_KEY}",
+                "Content-Type":  "application/json",
+                "Prefer":        "wait"
+            }
             r = requests.post(
                 "https://api.replicate.com/v1/models/black-forest-labs/flux-schnell/predictions",
                 headers=headers,
-                json={"input": {"prompt": prompt, "width": 1500, "height": 500,
-                                "num_outputs": 1, "output_format": "webp",
-                                "output_quality": 90, "go_fast": True,
-                                "megapixels": "1", "num_inference_steps": 4}},
+                json={"input": {
+                    "prompt":              prompt,
+                    "width":               1500,
+                    "height":              500,
+                    "num_outputs":         1,
+                    "output_format":       "webp",
+                    "output_quality":      90,
+                    "go_fast":             True,
+                    "megapixels":          "1",
+                    "num_inference_steps": 4
+                }},
                 timeout=120
             )
             result = r.json()
+            print(f"  [FLUX] Status: {result.get('status', 'unknown')}")
+
             if result.get("status") not in ["succeeded", "failed", "canceled"]:
                 poll_url = result.get("urls", {}).get("get")
                 if poll_url:
                     for _ in range(30):
                         time.sleep(3)
-                        result = requests.get(poll_url, headers={"Authorization": f"Bearer {REPLICATE_API_KEY}"}).json()
+                        result = requests.get(
+                            poll_url, headers={"Authorization": f"Bearer {REPLICATE_API_KEY}"}
+                        ).json()
                         if result.get("status") in ["succeeded", "failed", "canceled"]: break
+
             if result.get("status") == "succeeded":
                 output  = result.get("output")
                 img_url = output[0] if isinstance(output, list) else output
-                img_r   = requests.get(img_url, timeout=30)
+                print(f"  [FLUX] Success: {img_url}")
+                img_r = requests.get(img_url, timeout=30)
                 if img_r.status_code == 200:
+                    # Upload with retry
                     cdn = upload_to_cloudinary(img_r.content, "webp")
-                    return (cdn, cdn) if cdn else (img_url, img_url)
+                    if cdn:
+                        return cdn, cdn
+                    print("  [Cloudinary] Retrying upload...")
+                    time.sleep(3)
+                    cdn = upload_to_cloudinary(img_r.content, "webp")
+                    if cdn:
+                        return cdn, cdn
+                    # Fall back to Replicate URL (may expire)
+                    print("  [Image] Using Replicate URL as fallback")
+                    return img_url, img_url
+            print(f"  [FLUX] Failed: {result.get('error', 'unknown')}")
         except Exception as e:
             print(f"  [FLUX] Error: {e}")
 
-    print("  [Image] SVG fallback")
-    svg = (f'<svg xmlns="http://www.w3.org/2000/svg" width="1500" height="500">'
-           f'<rect width="1500" height="500" fill="{HN_CREAM}"/>'
-           f'<rect width="6" height="500" fill="{color}"/></svg>')
+    # SVG fallback
+    print("  [Image] Using SVG fallback")
+    svg = (
+        f'<svg xmlns="http://www.w3.org/2000/svg" width="1500" height="500">'
+        f'<rect width="1500" height="500" fill="{HN_CREAM}"/>'
+        f'<rect width="6" height="500" fill="{color}"/>'
+        f'<text x="28" y="38" font-family="Georgia,serif" font-size="11" '
+        f'fill="{HN_CHARCOAL}" opacity="0.5" letter-spacing="5">HOLISTIC NUTRITION RESEARCH BRIEF</text>'
+        f'</svg>'
+    )
     return f"data:image/svg+xml;base64,{base64.b64encode(svg.encode()).decode()}", svg
 
 # ── CHART ─────────────────────────────────────────────────────────────────────
@@ -643,38 +650,56 @@ def generate_chart(chart_data, product):
     labels = chart_data.get("labels", [])
     values = chart_data.get("values", [])
     if not labels or not values: return None
+
     prod   = PRODUCT_MAP.get(product, PRODUCT_MAP["general"])
     color  = prod["color"]
     hi_idx = chart_data.get("color_highlight_index", 0)
     suffix = chart_data.get("value_suffix", "")
 
     fig, ax = plt.subplots(figsize=(9, 4.5))
-    fig.patch.set_facecolor("#FAFAF8"); ax.set_facecolor("#FAFAF8")
+    fig.patch.set_facecolor("#FAFAF8")
+    ax.set_facecolor("#FAFAF8")
+
     bar_colors = [color if i == hi_idx else HN_BROWN + "99" for i in range(len(labels))]
     bars = ax.bar(labels, values, color=bar_colors, width=0.55, zorder=3)
+
     for bar, val in zip(bars, values):
         ax.text(bar.get_x() + bar.get_width()/2, bar.get_height() + max(values)*0.02,
-                f"{val}{suffix}", ha='center', va='bottom', fontsize=11, fontweight='600', color=HN_CHARCOAL)
-    ax.set_title(chart_data.get("title", ""), fontsize=13, fontweight='500', color=HN_CHARCOAL, pad=16)
-    ax.spines['top'].set_visible(False); ax.spines['right'].set_visible(False)
-    ax.spines['left'].set_color("#d4cec6"); ax.spines['bottom'].set_color("#d4cec6")
-    ax.yaxis.grid(True, color="#e8e3dc", linewidth=0.8, zorder=0); ax.set_axisbelow(True)
+                f"{val}{suffix}", ha='center', va='bottom',
+                fontsize=11, fontweight='600', color=HN_CHARCOAL)
+
+    ax.set_title(chart_data.get("title", ""), fontsize=13, fontweight='500',
+                 color=HN_CHARCOAL, pad=16)
+    ax.spines['top'].set_visible(False)
+    ax.spines['right'].set_visible(False)
+    ax.spines['left'].set_color("#d4cec6")
+    ax.spines['bottom'].set_color("#d4cec6")
+    ax.yaxis.grid(True, color="#e8e3dc", linewidth=0.8, zorder=0)
+    ax.set_axisbelow(True)
+
     if chart_data.get("subtitle"):
-        fig.text(0.5, -0.02, chart_data["subtitle"], ha='center', fontsize=8, color="#9a9590", style='italic')
+        fig.text(0.5, -0.02, chart_data["subtitle"], ha='center',
+                 fontsize=8, color="#9a9590", style='italic')
+
     fig.text(0.98, 0.02, "holisticnutrition.us", ha='right', fontsize=7, color="#b0a89f")
     plt.tight_layout()
+
     buf = io.BytesIO()
     plt.savefig(buf, format='png', dpi=150, bbox_inches='tight', facecolor="#FAFAF8")
-    plt.close(); buf.seek(0)
+    plt.close()
+    buf.seek(0)
     return f"data:image/png;base64,{base64.b64encode(buf.read()).decode()}"
 
 # ── YOUTUBE ───────────────────────────────────────────────────────────────────
 def find_youtube_video(query):
     if not YOUTUBE_API_KEY: return None
     try:
-        r     = requests.get("https://www.googleapis.com/youtube/v3/search",
-                             params={"part": "snippet", "q": query, "type": "video",
-                                     "maxResults": 3, "key": YOUTUBE_API_KEY}, timeout=10)
+        r     = requests.get(
+            "https://www.googleapis.com/youtube/v3/search",
+            params={"part": "snippet", "q": query, "type": "video",
+                    "maxResults": 3, "key": YOUTUBE_API_KEY},
+            timeout=10
+        )
         items = r.json().get("items", [])
         if not items: return None
         item   = items[0]
@@ -682,12 +707,16 @@ def find_youtube_video(query):
         title  = item["snippet"]["title"]
         ch     = item["snippet"]["channelTitle"]
         return {"embed_html": (
-            f'<div style="margin:2rem 0;"><p style="font-size:12px;color:#7a7570;margin-bottom:8px;'
+            f'<div style="margin:2rem 0;">'
+            f'<p style="font-size:12px;color:#7a7570;margin-bottom:8px;'
             f'text-transform:uppercase;letter-spacing:0.06em;">Related Research</p>'
-            f'<div style="position:relative;padding-bottom:56.25%;height:0;overflow:hidden;border-radius:8px;">'
+            f'<div style="position:relative;padding-bottom:56.25%;height:0;'
+            f'overflow:hidden;border-radius:8px;">'
             f'<iframe style="position:absolute;top:0;left:0;width:100%;height:100%;" '
-            f'src="https://www.youtube.com/embed/{vid_id}" frameborder="0" allowfullscreen></iframe></div>'
-            f'<p style="font-size:11px;color:#9a9590;margin-top:6px;">{title} — {ch}</p></div>'
+            f'src="https://www.youtube.com/embed/{vid_id}" frameborder="0" allowfullscreen></iframe>'
+            f'</div>'
+            f'<p style="font-size:11px;color:#9a9590;margin-top:6px;">{title} — {ch}</p>'
+            f'</div>'
         )}
     except: return None
 
@@ -697,19 +726,28 @@ def assemble_html(article, hero_uri, chart_b64, youtube, product):
     color = prod["color"]
     parts = []
 
-    parts.append(f'<div style="margin:0 0 36px 0;border-radius:10px;overflow:hidden;">'
-                 f'<img src="{hero_uri}" alt="{article["title"]}" '
-                 f'style="width:100%;aspect-ratio:3/1;object-fit:cover;display:block;"/></div>')
+    # Hero image
+    parts.append(
+        f'<div style="margin:0 0 36px 0;border-radius:10px;overflow:hidden;">'
+        f'<img src="{hero_uri}" alt="{article["title"]}" '
+        f'style="width:100%;aspect-ratio:3/1;object-fit:cover;display:block;"/>'
+        f'</div>'
+    )
 
+    # Opening quote
     q = article.get("opening_quote", {})
     if q.get("text"):
-        parts.append(f'<blockquote style="border-left:4px solid {color};padding:16px 24px;'
-                     f'margin:0 0 32px;background:#faf9f7;border-radius:0 8px 8px 0;">'
-                     f'<p style="font-size:18px;line-height:1.6;color:#2C2A27;font-style:italic;margin:0 0 8px;">'
-                     f'"{q["text"]}"</p>'
-                     f'<cite style="font-size:12px;color:#7a7570;font-style:normal;">{q.get("source","")}</cite>'
-                     f'</blockquote>')
+        parts.append(
+            f'<blockquote style="border-left:4px solid {color};padding:16px 24px;'
+            f'margin:0 0 32px;background:#faf9f7;border-radius:0 8px 8px 0;">'
+            f'<p style="font-size:18px;line-height:1.6;color:#2C2A27;font-style:italic;margin:0 0 8px;">'
+            f'"{q["text"]}"</p>'
+            f'<cite style="font-size:12px;color:#7a7570;font-style:normal;">'
+            f'{q.get("source","")}</cite>'
+            f'</blockquote>'
+        )
 
+    # Global styles
     parts.append(f'''<style>
 .hn-article blockquote{{border-left:4px solid {color};background:#faf9f7;padding:20px 24px;margin:28px 0;border-radius:0 8px 8px 0;font-size:17px;line-height:1.6;color:#2C2A27;font-style:italic;}}
 .hn-article table{{width:100%;border-collapse:collapse;margin:24px 0;font-size:14px;}}
@@ -721,46 +759,69 @@ def assemble_html(article, hero_uri, chart_b64, youtube, product):
 .hn-article h3{{font-size:18px;font-weight:500;color:#2C2A27;margin:28px 0 10px;}}
 </style><div class="hn-article">''')
 
+    # Sections
     chart_inserted = False
     for sec in article.get("sections", []):
         heading = sec.get("heading", "")
         html    = sec.get("html", "")
         if heading and heading.lower() != "introduction":
-            parts.append(f'<h2 style="font-size:22px;font-weight:500;color:#2C2A27;'
-                         f'margin:40px 0 16px;padding-bottom:8px;border-bottom:1px solid #e8e3dc;">'
-                         f'{heading}</h2>')
+            parts.append(
+                f'<h2 style="font-size:22px;font-weight:500;color:#2C2A27;'
+                f'margin:40px 0 16px;padding-bottom:8px;border-bottom:1px solid #e8e3dc;">'
+                f'{heading}</h2>'
+            )
         parts.append(html)
         if not chart_inserted and chart_b64 and "evidence" in heading.lower():
-            parts.append(f'<div style="margin:28px 0;"><img src="{chart_b64}" alt="Study data chart" '
-                         f'style="width:100%;max-width:720px;display:block;margin:0 auto;border-radius:8px;"/></div>')
+            parts.append(
+                f'<div style="margin:28px 0;">'
+                f'<img src="{chart_b64}" alt="Study data chart" '
+                f'style="width:100%;max-width:720px;display:block;margin:0 auto;border-radius:8px;"/>'
+                f'</div>'
+            )
             chart_inserted = True
         if youtube and youtube.get("embed_html") and "clinical" in heading.lower():
             parts.append(youtube["embed_html"])
 
     parts.append("</div>")
 
-    parts.append(f'<div style="margin:48px 0 32px;padding:28px 32px;background:#faf9f7;'
-                 f'border-radius:12px;border:1px solid #e8e3dc;border-left:4px solid {color};">'
-                 f'<p style="margin:0 0 12px;font-size:15px;color:#2C2A27;line-height:1.7;">{prod["cta"]}</p>'
-                 f'<a href="{prod["cta_url"]}" style="display:inline-block;background:{color};color:white;'
-                 f'padding:10px 22px;border-radius:6px;text-decoration:none;font-size:13px;font-weight:500;">'
-                 f'View the product &#x2192;</a></div>')
+    # CTA
+    parts.append(
+        f'<div style="margin:48px 0 32px;padding:28px 32px;background:#faf9f7;'
+        f'border-radius:12px;border:1px solid #e8e3dc;border-left:4px solid {color};">'
+        f'<p style="margin:0 0 12px;font-size:15px;color:#2C2A27;line-height:1.7;">'
+        f'{prod["cta"]}</p>'
+        f'<a href="{prod["cta_url"]}" style="display:inline-block;background:{color};'
+        f'color:white;padding:10px 22px;border-radius:6px;text-decoration:none;'
+        f'font-size:13px;font-weight:500;">View the product &#x2192;</a>'
+        f'</div>'
+    )
 
-    parts.append(f'<div style="margin:24px 0;padding:16px 20px;background:#f5f3f0;'
-                 f'border-radius:8px;border:1px solid #e8e3dc;">'
-                 f'<p style="margin:0;font-size:12px;color:#7a7570;line-height:1.6;">'
-                 f'This article is part of the <a href="https://holisticnutrition.us/pages/research-library" '
-                 f'style="color:{color};text-decoration:none;font-weight:500;">Holistic Nutrition Research Library</a>. '
-                 f'Browse all research briefs and ingredient factsheets.</p></div>')
+    # Research Library backlink
+    parts.append(
+        f'<div style="margin:24px 0;padding:16px 20px;background:#f5f3f0;'
+        f'border-radius:8px;border:1px solid #e8e3dc;">'
+        f'<p style="margin:0;font-size:12px;color:#7a7570;line-height:1.6;">'
+        f'This article is part of the '
+        f'<a href="https://holisticnutrition.us/pages/research-library" '
+        f'style="color:{color};text-decoration:none;font-weight:500;">'
+        f'Holistic Nutrition Research Library</a>. '
+        f'Browse all research briefs and ingredient factsheets.</p>'
+        f'</div>'
+    )
 
+    # References
     refs = article.get("references", [])
     if refs:
-        parts.append(f'<div style="margin-top:48px;padding-top:24px;border-top:1px solid #e8e3dc;">'
-                     f'<h2 style="font-size:14px;font-weight:500;color:#7a7570;text-transform:uppercase;'
-                     f'letter-spacing:0.08em;margin:0 0 16px;">References</h2>'
-                     + "".join(f'<p style="font-size:12px;color:#7a7570;margin:4px 0;line-height:1.6;">{r}</p>'
-                               for r in refs)
-                     + '</div>')
+        parts.append(
+            f'<div style="margin-top:48px;padding-top:24px;border-top:1px solid #e8e3dc;">'
+            f'<h2 style="font-size:14px;font-weight:500;color:#7a7570;'
+            f'text-transform:uppercase;letter-spacing:0.08em;margin:0 0 16px;">References</h2>'
+            + "".join(
+                f'<p style="font-size:12px;color:#7a7570;margin:4px 0;line-height:1.6;">{r}</p>'
+                for r in refs
+            )
+            + '</div>'
+        )
 
     return "\n".join(parts)
 
@@ -784,10 +845,13 @@ def notify_library(title, article_url, category):
 def publish(title, body_html, keyword, product, meta_title, meta_description):
     print("  [Zapier] Publishing to Shopify...")
     r = requests.post(ZAPIER_WEBHOOK, json={
-        "title": title, "body_html": body_html,
-        "tags": f"{product}, holistic nutrition, research brief, {keyword[:50]}",
-        "meta_title": meta_title, "meta_description": meta_description,
-        "published": True, "keyword": keyword
+        "title":            title,
+        "body_html":        body_html,
+        "tags":             f"{product}, holistic nutrition, research brief, {keyword[:50]}",
+        "meta_title":       meta_title,
+        "meta_description": meta_description,
+        "published":        True,
+        "keyword":          keyword
     }, timeout=30)
     print(f"  [Zapier] Status: {r.status_code}")
     try:    return r.json()
@@ -797,19 +861,22 @@ def publish(title, body_html, keyword, product, meta_title, meta_description):
 def run():
     start = datetime.datetime.utcnow()
     print(f"\n{'='*65}")
-    print(f"  HN CONTENT AGENT v4 — {start.strftime('%Y-%m-%d %H:%M UTC')}")
+    print(f"  HN CONTENT AGENT v5 — {start.strftime('%Y-%m-%d %H:%M UTC')}")
     print(f"  Firecrawl + DataForSEO + Claude Autonomous")
     print(f"{'='*65}")
 
-    # Step 0: Competitive keyword research
     print("\n  Step 0 — Competitive keyword research...")
     keyword, product = pick_best_keyword()
 
     print(f"\n  Keyword : {keyword}")
     print(f"  Product : {product}")
 
-    rec = insert_article({"title": f"Drafting — {keyword}", "keyword": keyword,
-                          "product": product, "status": "draft"})
+    rec = insert_article({
+        "title":   f"Drafting — {keyword}",
+        "keyword": keyword,
+        "product": product,
+        "status":  "draft"
+    })
     aid = rec["id"] if rec else None
 
     try:
@@ -829,24 +896,35 @@ def run():
 
         print("\n  Step 5/5 — Assembling and publishing...")
         body_html = assemble_html(art, hero_uri, chart_b64, yt, product)
-        result    = publish(art["title"], body_html, keyword, product,
-                            art.get("meta_title", art["title"][:55]),
-                            art.get("meta_description", ""))
+        result    = publish(
+            art["title"], body_html, keyword, product,
+            art.get("meta_title", art["title"][:55]),
+            art.get("meta_description", "")
+        )
 
+        # Build reliable article URL — never fall back to library page
         title_slug  = re.sub(r'[^a-z0-9]+', '-', art["title"].lower()).strip('-')
-        shopify_url = (result.get("url") or result.get("shopify_url")
-                       if isinstance(result, dict) else None) \
-                      or f"https://holisticnutrition.us/blogs/research-studies/{title_slug}"
+        shopify_url = None
+        if isinstance(result, dict):
+            candidate = result.get("url") or result.get("shopify_url") or result.get("blog_url")
+            # Only use if it's a real blog post URL, not the library page
+            if candidate and "research-library" not in candidate and "holisticnutrition.us" in candidate:
+                shopify_url = candidate
+        if not shopify_url:
+            shopify_url = f"https://holisticnutrition.us/blogs/research-studies/{title_slug}"
+
+        print(f"  [URL] {shopify_url}")
 
         if aid:
             update_article(aid, {
-                "title": art["title"], "keyword": keyword,
-                "meta_title": art.get("meta_title", ""),
+                "title":            art["title"],
+                "keyword":          keyword,
+                "meta_title":       art.get("meta_title", ""),
                 "meta_description": art.get("meta_description", ""),
-                "word_count": art.get("word_count", 0),
-                "status": "published",
-                "published_at": datetime.datetime.utcnow().isoformat(),
-                "shopify_url": shopify_url
+                "word_count":       art.get("word_count", 0),
+                "status":           "published",
+                "published_at":     datetime.datetime.utcnow().isoformat(),
+                "shopify_url":      shopify_url
             })
 
         prod = PRODUCT_MAP.get(product, PRODUCT_MAP["general"])
