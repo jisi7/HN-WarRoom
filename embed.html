@@ -5,36 +5,15 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>HN Research Library</title>
 <style>
-@font-face {
-  font-family: 'Industry';
-  src: url('/fonts/IndustryInc-Base.otf') format('opentype');
-  font-weight: 400;
-  font-display: swap;
-}
-@font-face {
-  font-family: 'Industry';
-  src: url('/fonts/Industry-Medium.otf') format('opentype');
-  font-weight: 500;
-  font-display: swap;
-}
-@font-face {
-  font-family: 'Industry';
-  src: url('/fonts/Industry-Bold.otf') format('opentype');
-  font-weight: 700;
-  font-display: swap;
-}
-
 * { margin: 0; padding: 0; box-sizing: border-box; }
-
-html { height: 100%; }
 
 body {
   font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
   background: white;
   color: #2C2A27;
-  min-height: 100%;
 }
 
+/* ── INSTITUTIONAL HEADER ── */
 .inst-header {
   background: #F5F3F0;
   border-top: 4px solid #A3988B;
@@ -62,26 +41,28 @@ body {
   justify-content: center;
 }
 
-.inst-badge svg { width: 30px; height: 30px; color: white; }
+.inst-badge svg {
+  width: 30px;
+  height: 30px;
+  color: white;
+}
 
 .inst-text { flex: 1; }
 
 .inst-eyebrow {
-  font-family: 'Industry', -apple-system, sans-serif;
-  font-weight: 400;
   font-size: 10px;
+  font-weight: 500;
   color: #A3988B;
-  letter-spacing: 0.14em;
+  letter-spacing: 0.12em;
   text-transform: uppercase;
   margin-bottom: 7px;
 }
 
 .inst-title {
-  font-family: 'Industry', -apple-system, sans-serif;
-  font-weight: 700;
-  font-size: 24px;
+  font-size: 22px;
+  font-weight: 600;
   color: #2C2A27;
-  letter-spacing: 0.02em;
+  letter-spacing: -0.01em;
   margin-bottom: 10px;
   line-height: 1.2;
 }
@@ -94,7 +75,11 @@ body {
   margin-bottom: 18px;
 }
 
-.inst-tags { display: flex; gap: 8px; flex-wrap: wrap; }
+.inst-tags {
+  display: flex;
+  gap: 8px;
+  flex-wrap: wrap;
+}
 
 .inst-tag {
   display: inline-flex;
@@ -108,7 +93,11 @@ body {
   color: #5a5550;
 }
 
-.inst-tag-dot { width: 7px; height: 7px; border-radius: 50%; }
+.inst-tag-dot {
+  width: 7px;
+  height: 7px;
+  border-radius: 50%;
+}
 
 .inst-divider {
   width: 1px;
@@ -120,9 +109,8 @@ body {
 .inst-stat-item { text-align: right; }
 
 .inst-stat-num {
-  font-family: 'Industry', -apple-system, sans-serif;
-  font-weight: 700;
-  font-size: 32px;
+  font-size: 28px;
+  font-weight: 600;
   color: #2C2A27;
   line-height: 1;
   display: block;
@@ -154,13 +142,22 @@ body {
   margin-top: 2px;
 }
 
-.inst-notice p { font-size: 11px; color: #7a7570; line-height: 1.5; }
-.inst-notice strong { color: #2C2A27; font-weight: 500; }
+.inst-notice p {
+  font-size: 11px;
+  color: #7a7570;
+  line-height: 1.5;
+}
 
+.inst-notice strong {
+  color: #2C2A27;
+  font-weight: 500;
+}
+
+/* ── LIBRARY CONTENT ── */
 .lib-wrap {
   max-width: 860px;
   margin: 0 auto;
-  padding: 0 24px 64px;
+  padding: 0 24px 48px;
 }
 
 .search-row {
@@ -233,6 +230,7 @@ body {
 .stat-num { font-size: 16px; font-weight: 600; color: #2C2A27; }
 .stat-label { font-size: 10px; color: #9a9590; text-transform: uppercase; letter-spacing: 0.06em; }
 
+/* ── CATEGORY SECTION ── */
 .category-section { margin-bottom: 36px; }
 
 .category-header {
@@ -247,16 +245,7 @@ body {
 }
 
 .cat-bar { width: 4px; height: 18px; border-radius: 2px; flex-shrink: 0; }
-
-.cat-title {
-  font-family: 'Industry', -apple-system, sans-serif;
-  font-weight: 500;
-  font-size: 11px;
-  text-transform: uppercase;
-  letter-spacing: 0.12em;
-  color: #2C2A27;
-}
-
+.cat-title { font-size: 11px; font-weight: 500; text-transform: uppercase; letter-spacing: 0.1em; color: #2C2A27; }
 .cat-count { font-size: 11px; color: #b0a89f; margin-left: auto; }
 
 .cat-chevron {
@@ -269,23 +258,23 @@ body {
 
 .cat-chevron.open { transform: rotate(180deg); }
 
+/* ── ARTICLES GRID ── */
 .articles-grid {
   display: grid;
   grid-template-columns: repeat(auto-fill, minmax(240px, 1fr));
   gap: 10px;
 }
 
-/* CARD — bottom underline design, no dot */
+/* ── CARD ── */
 .article-card {
   background: white;
   border: 1px solid #e8e3dc;
-  border-bottom: 3px solid transparent;
+  border-left: 3px solid transparent;
   border-radius: 8px;
-  padding: 14px 16px 12px;
+  padding: 14px 16px;
   text-decoration: none;
   color: inherit;
-  display: flex;
-  flex-direction: column;
+  display: block;
   transition: box-shadow 0.15s, transform 0.15s, opacity 0.4s, translate 0.4s;
   opacity: 0;
   translate: 0 16px;
@@ -297,39 +286,20 @@ body {
 }
 
 .article-card:hover {
-  box-shadow: 0 2px 12px rgba(0,0,0,0.07);
+  box-shadow: 0 2px 10px rgba(0,0,0,0.07);
   transform: translateY(-1px);
 }
 
 .card-date { font-size: 10px; color: #b0a89f; text-transform: uppercase; letter-spacing: 0.05em; margin-bottom: 5px; }
+.card-title { font-size: 13px; font-weight: 500; color: #2C2A27; line-height: 1.45; margin-bottom: 10px; }
+.card-badge { display: inline-block; padding: 2px 9px; border-radius: 20px; font-size: 10px; font-weight: 500; color: white; }
+.card-arrow { float: right; font-size: 13px; color: #d4cec6; margin-top: 1px; }
 
-.card-title {
-  font-size: 13px;
-  font-weight: 500;
-  color: #2C2A27;
-  line-height: 1.45;
-  flex: 1;
-  margin-bottom: 12px;
+/* ── SHOW MORE ── */
+.show-more-wrap {
+  margin-top: 14px;
+  text-align: center;
 }
-
-.card-footer {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-}
-
-.card-badge {
-  display: inline-block;
-  padding: 2px 9px;
-  border-radius: 20px;
-  font-size: 10px;
-  font-weight: 500;
-  color: white;
-}
-
-.card-arrow { font-size: 13px; color: #d4cec6; }
-
-.show-more-wrap { margin-top: 14px; text-align: center; }
 
 .show-more-btn {
   display: inline-flex;
@@ -347,9 +317,16 @@ body {
 }
 
 .show-more-btn:hover { border-color: #A3988B; color: #2C2A27; }
-.show-more-btn svg { width: 14px; height: 14px; transition: transform 0.25s; }
+
+.show-more-btn svg {
+  width: 14px;
+  height: 14px;
+  transition: transform 0.25s;
+}
+
 .show-more-btn.expanded svg { transform: rotate(180deg); }
 
+/* ── EMPTY / LOADING ── */
 .empty { text-align: center; padding: 60px 20px; color: #b0a89f; }
 .empty p { font-size: 14px; }
 
@@ -365,6 +342,7 @@ body {
 @keyframes spin { to { transform: rotate(360deg); } }
 .loading p { font-size: 13px; color: #b0a89f; }
 
+/* ── MOBILE ── */
 @media (max-width: 600px) {
   .inst-inner { flex-direction: column; gap: 16px; }
   .inst-divider { display: none; }
@@ -373,12 +351,12 @@ body {
   .articles-grid { grid-template-columns: 1fr; }
   .filter-btn { padding: 7px 10px; font-size: 11px; }
   .search-row { gap: 6px; }
-  .lib-wrap { padding: 0 16px 80px; }
 }
 </style>
 </head>
 <body>
 
+<!-- INSTITUTIONAL HEADER -->
 <div class="inst-header">
   <div class="inst-inner">
     <div class="inst-badge">
@@ -389,7 +367,7 @@ body {
     </div>
 
     <div class="inst-text">
-      <div class="inst-eyebrow">Holistic Nutrition &middot; Research Division</div>
+      <div class="inst-eyebrow">Holistic Nutrition · Research Division</div>
       <h1 class="inst-title">Research Library</h1>
       <p class="inst-desc">Holistic Nutrition publishes peer-reviewed research briefs, ingredient factsheets, and clinical evidence summaries. Every article is grounded in published literature, written to be understood by both practitioners and informed consumers, and updated as new evidence emerges.</p>
       <div class="inst-tags">
@@ -402,7 +380,7 @@ body {
     <div class="inst-divider"></div>
 
     <div class="inst-stat-item">
-      <span class="inst-stat-num" id="hdr-total">&#8212;</span>
+      <span class="inst-stat-num" id="hdr-total">—</span>
       <span class="inst-stat-label">Briefs Published</span>
     </div>
   </div>
@@ -413,6 +391,7 @@ body {
   </div>
 </div>
 
+<!-- LIBRARY -->
 <div class="lib-wrap">
 
   <div class="search-row">
@@ -431,22 +410,22 @@ body {
 
   <div class="stats-row">
     <div class="stat">
-      <span class="stat-num" id="total-count">&#8212;</span>
+      <span class="stat-num" id="total-count">—</span>
       <span class="stat-label">Articles</span>
     </div>
     <div class="stat">
       <span class="stat-dot" style="background:#24418F"></span>
-      <span class="stat-num" id="cog-count">&#8212;</span>
+      <span class="stat-num" id="cog-count">—</span>
       <span class="stat-label">Cognition</span>
     </div>
     <div class="stat">
       <span class="stat-dot" style="background:#D2042D"></span>
-      <span class="stat-num" id="perf-count">&#8212;</span>
+      <span class="stat-num" id="perf-count">—</span>
       <span class="stat-label">Performance</span>
     </div>
     <div class="stat">
       <span class="stat-dot" style="background:#C8893A"></span>
-      <span class="stat-num" id="lon-count">&#8212;</span>
+      <span class="stat-num" id="lon-count">—</span>
       <span class="stat-label">Longevity</span>
     </div>
   </div>
@@ -521,13 +500,10 @@ function cardHtml(a, cfg) {
   const url   = a.shopify_url || '#';
   const title = a.title || 'Untitled';
   const date  = fmt(a.published_at);
-  return '<a href="' + url + '" target="_blank" class="article-card" style="border-bottom-color:' + cfg.color + '">'
+  return '<a href="' + url + '" target="_blank" class="article-card" style="border-left-color:' + cfg.color + '">'
     + '<div class="card-date">' + date + '</div>'
-    + '<div class="card-title">' + title + '</div>'
-    + '<div class="card-footer">'
+    + '<div class="card-title">' + title + '<span class="card-arrow">&#x2192;</span></div>'
     + '<span class="card-badge" style="background:' + cfg.color + '">' + cfg.label + '</span>'
-    + '<span class="card-arrow">&#x2192;</span>'
-    + '</div>'
     + '</a>';
 }
 
@@ -545,7 +521,6 @@ function render() {
   if (!filtered.length) {
     document.getElementById('library-content').innerHTML =
       '<div class="empty"><p>No articles found. Try adjusting your search or filter.</p></div>';
-    notifyHeight();
     return;
   }
 
@@ -560,10 +535,9 @@ function render() {
     const isExpanded = expandedCats.has(c) || !isAll;
     const shown = isAll && !isExpanded ? items.slice(0, PREVIEW_COUNT) : items;
     const remaining = items.length - PREVIEW_COUNT;
-    const safeC = c.replace(/'/g, "\\'");
 
     html += '<div class="category-section" data-cat="' + c + '">'
-      + '<div class="category-header" onclick="toggleCat(\'' + safeC + '\')">'
+      + '<div class="category-header" onclick="toggleCat(\'' + c.replace(/'/g, "\\'") + '\')">'
       + '<div class="cat-bar" style="background:' + cfg.color + '"></div>'
       + '<span class="cat-title">' + c + '</span>'
       + '<span class="cat-count">' + items.length + ' article' + (items.length !== 1 ? 's' : '') + '</span>'
@@ -575,7 +549,7 @@ function render() {
 
     if (isAll && !isExpanded && remaining > 0) {
       html += '<div class="show-more-wrap">'
-        + '<button class="show-more-btn" onclick="expandCat(\'' + safeC + '\')">'
+        + '<button class="show-more-btn" id="btn-' + c.replace(/\s+/g, '-') + '" onclick="expandCat(\'' + c.replace(/'/g, "\\'") + '\')">'
         + 'Show ' + remaining + ' more'
         + '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="m19 9-7 7-7-7"/></svg>'
         + '</button></div>';
@@ -591,7 +565,11 @@ function render() {
 
 function toggleCat(c) {
   if (activeFilter !== 'all' || query) return;
-  if (expandedCats.has(c)) { expandedCats.delete(c); } else { expandedCats.add(c); }
+  if (expandedCats.has(c)) {
+    expandedCats.delete(c);
+  } else {
+    expandedCats.add(c);
+  }
   render();
 }
 
@@ -600,6 +578,7 @@ function expandCat(c) {
   render();
 }
 
+// Scroll-triggered fade-in
 function animateCards() {
   const cards = document.querySelectorAll('.article-card');
   if ('IntersectionObserver' in window) {
@@ -617,11 +596,12 @@ function animateCards() {
   }
 }
 
+// Tell parent iframe to resize
 function notifyHeight() {
   setTimeout(() => {
-    const h = Math.max(document.body.scrollHeight, document.documentElement.scrollHeight);
+    const h = document.body.scrollHeight;
     window.parent.postMessage({ type: 'hn-library-height', height: h }, '*');
-  }, 400);
+  }, 300);
 }
 
 document.getElementById('search').addEventListener('input', e => {
@@ -639,8 +619,6 @@ document.querySelectorAll('.filter-btn').forEach(btn => {
     render();
   });
 });
-
-window.addEventListener('resize', () => notifyHeight());
 
 load();
 </script>
