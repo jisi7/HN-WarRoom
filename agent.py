@@ -2,7 +2,7 @@
 """
 Holistic Nutrition Content Agent v5
 Firecrawl + DataForSEO + Claude → Best keyword gap → Article → Shopify → Library
-Fixes: realistic images, correct article URLs, image upload retry
+Fixes: realistic images (FLUX Dev), correct article URLs, image upload retry
 """
 
 import os, json, random, requests, datetime, base64, io, re, time
@@ -80,6 +80,51 @@ Alpha-GPC 50% 200mg, L-Theanine 200mg, Phosphatidylserine 20% 200mg,
 Rhodiola (3% Rosavins) 150mg, Caffeine 75mg, BioPerine 7mg.
 NO Lion's Mane. Sweetened with Stevia + Thaumatin only.
 """
+
+# ── PHOTO PROMPT STYLE ────────────────────────────────────────────────────────
+# Real-world subjects FLUX Dev can photograph realistically.
+PHOTO_STYLE = (
+    "Ultra-wide panoramic banner, 3:1 aspect ratio. "
+    "Shot on a full-frame camera with a 50mm lens. "
+    "Natural studio or outdoor light. "
+    "Photorealistic — looks like a real photograph, not digital art, not CGI, not illustrated. "
+    "Clean minimal composition. "
+    "No text, no product bottles, no logos, no people's faces."
+)
+
+PRODUCT_PHOTO_SUBJECTS = {
+    "creatine": [
+        "overhead view of a white ceramic scoop of fine white crystalline powder on a clean white surface",
+        "close-up of muscular forearm gripping a stainless steel pull-up bar, natural gym lighting",
+        "glass of clear water with fine white powder dissolving, macro lens, clean white background",
+        "top view of athletic track lane lines stretching to the horizon, early morning golden light",
+        "hands of an athlete wrapping wrist tape before lifting, clean gym background",
+        "close-up of white powder being scooped with a matte black spoon on white marble"
+    ],
+    "focase": [
+        "overhead shot of a clean wooden desk with an open notebook, single pen, morning window light",
+        "close-up of hands typing on a keyboard with coffee beside them, warm office light",
+        "bright minimal workspace corner — white desk, green plant, soft morning light through window",
+        "top-down view of open book pages with small glass of water and clean white surface",
+        "a focused person writing notes in a notebook at a bright cafe window, bokeh background",
+        "minimal desk setup with a laptop, clean notepad, and a single espresso cup, morning light"
+    ],
+    "vitamin_d": [
+        "aerial view of a person standing in bright midday sunlight on a white sand beach",
+        "close-up of sunlight streaming through a window onto a wooden table with a glass of water",
+        "macro shot of small amber gel capsules on a clean white marble surface",
+        "sunlight breaking through forest canopy onto a green moss floor, rays visible",
+        "person's bare arm resting in bright natural sunlight on a light concrete surface",
+        "wide shot of golden wheat field under a bright blue sky at midday"
+    ],
+    "general": [
+        "overhead flat lay of scientific journals, a glass of water, and a clean notebook on white",
+        "close-up of a researcher's hands turning pages of a printed study under lab lighting",
+        "minimal lab bench with clean glass beakers and morning light through large windows",
+        "top-down view of assorted natural ingredients arranged cleanly on white surface",
+        "side view of a person reviewing data on a laptop screen, clean bright room"
+    ]
+}
 
 SEED_KEYWORDS = {
     "creatine": [
@@ -179,7 +224,7 @@ CRITICAL: Never use backslashes in HTML. No escape sequences in JSON strings.
 OUTPUT — ONLY valid JSON:
 {
   "title": "...",
-  "photo_prompt": "Specific visual description for [topic] — describe exactly what biological or scientific subject should appear: e.g. 'cross-section of human muscle fiber showing mitochondrial density' or 'neural synaptic connections with myelin sheath detail' or 'vitamin D3 molecular structure with cholesterol precursor'. Be specific and scientific.",
+  "photo_subject": "Describe ONE simple real-world subject to photograph — a physical object or scene. Keep it concrete and photographable. Examples: 'close-up of white creatine powder in a ceramic scoop on white marble', 'sunlight streaming through a window onto a wooden desk', 'athlete gripping a pull-up bar in a clean gym'. No molecular descriptions, no diagrams, no abstract concepts.",
   "meta_title": "... max 55 chars",
   "meta_description": "... max 150 chars",
   "opening_quote": {"text": "...", "source": "..."},
@@ -468,7 +513,7 @@ Return ONLY JSON array:
 # ── GENERATE ARTICLE ──────────────────────────────────────────────────────────
 def generate_article(keyword, product):
     print(f"  [Claude] Writing article: '{keyword}'")
-    prod      = PRODUCT_MAP.get(product, PRODUCT_MAP["general"])
+    prod       = PRODUCT_MAP.get(product, PRODUCT_MAP["general"])
     focase_ctx = f"\n\nFOCASE FORMULA:\n{FOCASE_2_FORMULA}" if product == "focase" else ""
 
     msg = client.messages.create(
@@ -512,6 +557,22 @@ def generate_article(keyword, product):
     if result: return result
     raise ValueError("Could not parse article JSON")
 
+# ── BUILD PHOTO PROMPT ────────────────────────────────────────────────────────
+def build_photo_prompt(article, product):
+    """Combine article photo_subject with FLUX Dev style. Falls back to curated list if abstract."""
+    subject = (article.get("photo_subject") or "").strip()
+
+    bad_signals = ["molecular", "cross-section", "cellular", "atomic", "microscop",
+                   "diagram", "illustration", "abstract", "symbolic", "visualization"]
+    if not subject or any(sig in subject.lower() for sig in bad_signals):
+        subjects = PRODUCT_PHOTO_SUBJECTS.get(product, PRODUCT_PHOTO_SUBJECTS["general"])
+        subject  = random.choice(subjects)
+        print(f"  [Image] Using curated subject: {subject}")
+    else:
+        print(f"  [Image] Using article subject: {subject}")
+
+    return f"{subject}. {PHOTO_STYLE}"
+
 # ── IMAGE ─────────────────────────────────────────────────────────────────────
 def upload_to_cloudinary(image_bytes, ext="webp"):
     if not all([CLOUDINARY_CLOUD, CLOUDINARY_API_KEY, CLOUDINARY_SECRET]): return None
@@ -533,80 +594,70 @@ def upload_to_cloudinary(image_bytes, ext="webp"):
         print(f"  [Cloudinary] Error: {e}")
         return None
 
-def generate_hero_image(photo_prompt, product):
-    print("  [Image] Generating hero image...")
-    prod  = PRODUCT_MAP.get(product, PRODUCT_MAP["general"])
-    color = prod["color"]
+def generate_hero_image(article, product):
+    """Generate hero image using FLUX Dev with a real-world photo prompt."""
+    print("  [Image] Generating hero image with FLUX Dev...")
+    prod         = PRODUCT_MAP.get(product, PRODUCT_MAP["general"])
+    color        = prod["color"]
+    photo_prompt = build_photo_prompt(article, product)
 
     if REPLICATE_API_KEY:
         try:
-            # Realistic biology-style image direction per product
-            prompt = (
-                f"Scientific biology photograph. {photo_prompt} "
-                f"Ultra-wide 3:1 banner format. "
-                f"Style: real scientific or biological photography — could be cellular imagery, "
-                f"molecular structures, anatomical detail, biological cross-sections, lab specimens, "
-                f"or any imagery that feels like it belongs in Nature or Science journal. "
-                f"Photorealistic — not illustrated, not CGI, not AI art style, not digital painting. "
-                f"High resolution, sharp focus, scientific aesthetic. "
-                f"No text overlays, no people, no product bottles, no lab equipment in foreground."
-            )
-
             headers = {
                 "Authorization": f"Bearer {REPLICATE_API_KEY}",
                 "Content-Type":  "application/json",
                 "Prefer":        "wait"
             }
+
+            # FLUX Dev — more realistic than Schnell, better prompt adherence
             r = requests.post(
-                "https://api.replicate.com/v1/models/black-forest-labs/flux-schnell/predictions",
+                "https://api.replicate.com/v1/models/black-forest-labs/flux-dev/predictions",
                 headers=headers,
                 json={"input": {
-                    "prompt":              prompt,
+                    "prompt":              photo_prompt,
                     "width":               1500,
                     "height":              500,
                     "num_outputs":         1,
                     "output_format":       "webp",
                     "output_quality":      90,
-                    "go_fast":             True,
-                    "megapixels":          "1",
-                    "num_inference_steps": 4
+                    "guidance":            3.5,
+                    "num_inference_steps": 28,
+                    "go_fast":             False
                 }},
-                timeout=120
+                timeout=180
             )
             result = r.json()
-            print(f"  [FLUX] Status: {result.get('status', 'unknown')}")
+            print(f"  [FLUX Dev] Status: {result.get('status', 'unknown')}")
 
             if result.get("status") not in ["succeeded", "failed", "canceled"]:
                 poll_url = result.get("urls", {}).get("get")
                 if poll_url:
-                    for _ in range(30):
-                        time.sleep(3)
+                    for _ in range(60):
+                        time.sleep(4)
                         result = requests.get(
                             poll_url, headers={"Authorization": f"Bearer {REPLICATE_API_KEY}"}
                         ).json()
+                        print(f"  [FLUX Dev] Polling: {result.get('status', '...')}")
                         if result.get("status") in ["succeeded", "failed", "canceled"]: break
 
             if result.get("status") == "succeeded":
                 output  = result.get("output")
                 img_url = output[0] if isinstance(output, list) else output
-                print(f"  [FLUX] Success: {img_url}")
+                print(f"  [FLUX Dev] Success: {img_url}")
                 img_r = requests.get(img_url, timeout=30)
                 if img_r.status_code == 200:
-                    # Upload with retry
                     cdn = upload_to_cloudinary(img_r.content, "webp")
-                    if cdn:
-                        return cdn, cdn
+                    if cdn: return cdn, cdn
                     print("  [Cloudinary] Retrying upload...")
                     time.sleep(3)
                     cdn = upload_to_cloudinary(img_r.content, "webp")
-                    if cdn:
-                        return cdn, cdn
-                    # Fall back to Replicate URL (may expire)
-                    print("  [Image] Using Replicate URL as fallback")
+                    if cdn: return cdn, cdn
+                    print("  [Image] Using Replicate URL as fallback (may expire)")
                     return img_url, img_url
-            print(f"  [FLUX] Failed: {result.get('error', 'unknown')}")
+
+            print(f"  [FLUX Dev] Failed: {result.get('error', 'unknown')}")
         except Exception as e:
-            print(f"  [FLUX] Error: {e}")
+            print(f"  [FLUX Dev] Error: {e}")
 
     # SVG fallback
     print("  [Image] Using SVG fallback")
@@ -701,7 +752,6 @@ def assemble_html(article, hero_uri, chart_b64, youtube, product):
     color = prod["color"]
     parts = []
 
-    # Hero image
     parts.append(
         f'<div style="margin:0 0 36px 0;border-radius:10px;overflow:hidden;">'
         f'<img src="{hero_uri}" alt="{article["title"]}" '
@@ -709,7 +759,6 @@ def assemble_html(article, hero_uri, chart_b64, youtube, product):
         f'</div>'
     )
 
-    # Opening quote
     q = article.get("opening_quote", {})
     if q.get("text"):
         parts.append(
@@ -722,7 +771,6 @@ def assemble_html(article, hero_uri, chart_b64, youtube, product):
             f'</blockquote>'
         )
 
-    # Global styles
     parts.append(f'''<style>
 .hn-article blockquote{{border-left:4px solid {color};background:#faf9f7;padding:20px 24px;margin:28px 0;border-radius:0 8px 8px 0;font-size:17px;line-height:1.6;color:#2C2A27;font-style:italic;}}
 .hn-article table{{width:100%;border-collapse:collapse;margin:24px 0;font-size:14px;}}
@@ -734,7 +782,6 @@ def assemble_html(article, hero_uri, chart_b64, youtube, product):
 .hn-article h3{{font-size:18px;font-weight:500;color:#2C2A27;margin:28px 0 10px;}}
 </style><div class="hn-article">''')
 
-    # Sections
     chart_inserted = False
     for sec in article.get("sections", []):
         heading = sec.get("heading", "")
@@ -759,7 +806,6 @@ def assemble_html(article, hero_uri, chart_b64, youtube, product):
 
     parts.append("</div>")
 
-    # CTA
     parts.append(
         f'<div style="margin:48px 0 32px;padding:28px 32px;background:#faf9f7;'
         f'border-radius:12px;border:1px solid #e8e3dc;border-left:4px solid {color};">'
@@ -771,7 +817,6 @@ def assemble_html(article, hero_uri, chart_b64, youtube, product):
         f'</div>'
     )
 
-    # Research Library backlink
     parts.append(
         f'<div style="margin:24px 0;padding:16px 20px;background:#f5f3f0;'
         f'border-radius:8px;border:1px solid #e8e3dc;">'
@@ -784,7 +829,6 @@ def assemble_html(article, hero_uri, chart_b64, youtube, product):
         f'</div>'
     )
 
-    # References
     refs = article.get("references", [])
     if refs:
         parts.append(
@@ -837,7 +881,7 @@ def run():
     start = datetime.datetime.utcnow()
     print(f"\n{'='*65}")
     print(f"  HN CONTENT AGENT v5 — {start.strftime('%Y-%m-%d %H:%M UTC')}")
-    print(f"  Firecrawl + DataForSEO + Claude Autonomous")
+    print(f"  FLUX Dev + Firecrawl + DataForSEO + Claude Autonomous")
     print(f"{'='*65}")
 
     print("\n  Step 0 — Competitive keyword research...")
@@ -860,8 +904,8 @@ def run():
         print(f"    Title : {art['title']}")
         print(f"    Words : {art.get('word_count', '?')}")
 
-        print("\n  Step 2/5 — Creating hero image...")
-        hero_uri, _ = generate_hero_image(art.get("photo_prompt", ""), product)
+        print("\n  Step 2/5 — Creating hero image (FLUX Dev)...")
+        hero_uri, _ = generate_hero_image(art, product)
 
         print("\n  Step 3/5 — Rendering chart...")
         chart_b64 = generate_chart(art["chart"], product) if art.get("chart") else None
@@ -877,12 +921,10 @@ def run():
             art.get("meta_description", "")
         )
 
-        # Build reliable article URL — never fall back to library page
         title_slug  = re.sub(r'[^a-z0-9]+', '-', art["title"].lower()).strip('-')
         shopify_url = None
         if isinstance(result, dict):
             candidate = result.get("url") or result.get("shopify_url") or result.get("blog_url")
-            # Only use if it's a real blog post URL, not the library page
             if candidate and "research-library" not in candidate and "holisticnutrition.us" in candidate:
                 shopify_url = candidate
         if not shopify_url:
@@ -902,8 +944,8 @@ def run():
                 "shopify_url":      shopify_url
             })
 
-        prod = PRODUCT_MAP.get(product, PRODUCT_MAP["general"])
-        notify_library(art["title"], shopify_url, prod["category"])
+        prod_data = PRODUCT_MAP.get(product, PRODUCT_MAP["general"])
+        notify_library(art["title"], shopify_url, prod_data["category"])
 
         duration = int((datetime.datetime.utcnow() - start).total_seconds())
         log_run("completed", f"Published: {art['title']}", 1, duration=duration)
