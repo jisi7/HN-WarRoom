@@ -817,10 +817,11 @@ def assemble_html(article, hero_uri, chart_b64, youtube, product):
 
     # Rotating CTA button copy — A/B test across articles
     # Track which variant converts in Shopify analytics / UTM params
+    prod_short = {"creatine": "Creatine", "focase": "Focase", "vitamin_d": "D3+K2", "general": "Holistic Nutrition"}.get(product, "Holistic Nutrition")
     CTA_VARIANTS = [
         ("Shop Now", "?utm_source=blog&utm_content=cta_shop_now"),
-        ("See the Formula", "?utm_source=blog&utm_content=cta_see_formula"),
-        ("Get Yours", "?utm_source=blog&utm_content=cta_get_yours"),
+        (f"See Our {prod_short} Formula", "?utm_source=blog&utm_content=cta_see_formula"),
+        (f"Try {prod_short}", "?utm_source=blog&utm_content=cta_try_product"),
         ("Learn More", "?utm_source=blog&utm_content=cta_learn_more"),
     ]
     btn_label, btn_utm = random.choice(CTA_VARIANTS)
