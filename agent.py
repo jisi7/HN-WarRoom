@@ -752,6 +752,15 @@ def assemble_html(article, hero_uri, chart_b64, youtube, product):
     color = prod["color"]
     parts = []
 
+    # Suppress Shopify's auto-rendered tags/date line above article body
+    parts.append(
+        '<style>'
+        '.article__tags, .article-template__tags, .article__meta, '
+        '.article-template__meta, .article__date, .blog-post__meta, '
+        '.blog-article__meta, .article-meta { display: none !important; }'
+        '</style>'
+    )
+
     parts.append(
         f'<div style="margin:0 0 36px 0;border-radius:10px;overflow:hidden;">'
         f'<img src="{hero_uri}" alt="{article["title"]}" '
@@ -806,14 +815,24 @@ def assemble_html(article, hero_uri, chart_b64, youtube, product):
 
     parts.append("</div>")
 
+    # Rotating CTA button copy — A/B test across articles
+    # Track which variant converts in Shopify analytics / UTM params
+    CTA_VARIANTS = [
+        ("Shop Now", "?utm_source=blog&utm_content=cta_shop_now"),
+        ("See the Formula", "?utm_source=blog&utm_content=cta_see_formula"),
+        ("Get Yours", "?utm_source=blog&utm_content=cta_get_yours"),
+        ("Learn More", "?utm_source=blog&utm_content=cta_learn_more"),
+    ]
+    btn_label, btn_utm = random.choice(CTA_VARIANTS)
+
     parts.append(
         f'<div style="margin:48px 0 32px;padding:28px 32px;background:#faf9f7;'
         f'border-radius:12px;border:1px solid #e8e3dc;border-left:4px solid {color};">'
-        f'<p style="margin:0 0 12px;font-size:15px;color:#2C2A27;line-height:1.7;">'
+        f'<p style="margin:0 0 16px;font-size:15px;color:#2C2A27;line-height:1.7;">'
         f'{prod["cta"]}</p>'
-        f'<a href="{prod["cta_url"]}" style="display:inline-block;background:{color};'
-        f'color:white;padding:10px 22px;border-radius:6px;text-decoration:none;'
-        f'font-size:13px;font-weight:500;">View the product &#x2192;</a>'
+        f'<a href="{prod["cta_url"]}{btn_utm}" style="display:inline-block;background:{color};'
+        f'color:white;padding:11px 24px;border-radius:6px;text-decoration:none;'
+        f'font-size:13px;font-weight:500;letter-spacing:0.02em;">{btn_label} &#x2192;</a>'
         f'</div>'
     )
 
