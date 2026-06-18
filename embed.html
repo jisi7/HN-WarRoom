@@ -590,12 +590,24 @@ function animateCards() {
   }
 }
 
-function notifyHeight() {
-  setTimeout(() => {
-    const h = Math.max(document.body.scrollHeight, document.documentElement.scrollHeight);
-    window.parent.postMessage({ type: 'hn-library-height', height: h }, '*');
-  }, 400);
+function postHeight() {
+  const h = Math.max(document.body.scrollHeight, document.documentElement.scrollHeight);
+  window.parent.postMessage({ type: 'hn-library-height', height: h }, '*');
 }
+
+function notifyHeight() {
+  // Post immediately and again after layout settles (web fonts, reflow) so the
+  // parent iframe resizes reliably regardless of timing.
+  postHeight();
+  setTimeout(postHeight, 400);
+}
+
+// Belt-and-suspenders: auto-report height on ANY content change (filter, search,
+// data load, viewport change) without relying on every caller remembering to.
+if (window.ResizeObserver) {
+  new ResizeObserver(() => postHeight()).observe(document.documentElement);
+}
+window.addEventListener('load', notifyHeight);
 
 document.getElementById('search').addEventListener('input', e => {
   query = e.target.value.trim();
