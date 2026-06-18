@@ -4,10 +4,17 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>HN Situation Ops Center</title>
-<script src="https://unpkg.com/react@18/umd/react.production.min.js"></script>
-<script src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js"></script>
-<script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
-<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<!-- CDN deps pinned to exact versions to prevent silent breakage from upstream drift.
+     Babel is held at 7.x on purpose: Babel 8 changed the React preset's default JSX
+     runtime to "automatic", which injects `import ... from "react/jsx-runtime"` into
+     the compiled output. That `import` is illegal in this classic (non-module) <script>
+     and throws "Cannot use import statement outside a module", which silently blanks
+     the whole dashboard. Do NOT bump to @babel/standalone@8 without either switching to
+     a module build or forcing the classic runtime. -->
+<script src="https://unpkg.com/react@18.3.1/umd/react.production.min.js"></script>
+<script src="https://unpkg.com/react-dom@18.3.1/umd/react-dom.production.min.js"></script>
+<script src="https://unpkg.com/@babel/standalone@7.26.4/babel.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.108.2"></script>
 <style>
   @import url('https://fonts.googleapis.com/css2?family=DM+Mono:wght@300;400;500&family=DM+Sans:wght@300;400;500;600&display=swap');
 
