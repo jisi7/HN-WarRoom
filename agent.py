@@ -251,6 +251,11 @@ Return ONLY valid JSON. No markdown. No preamble."""
 
 # ── SUPABASE ──────────────────────────────────────────────────────────────────
 def sb(method, path, **kwargs):
+    if not SUPABASE_KEY:
+        raise RuntimeError(
+            "SUPABASE_KEY is empty — set the GitHub Actions secret to a valid "
+            "Supabase service_role / secret key."
+        )
     headers = {
         "apikey": SUPABASE_KEY,
         "Authorization": f"Bearer {SUPABASE_KEY}",
@@ -258,8 +263,17 @@ def sb(method, path, **kwargs):
         "Prefer": "return=representation"
     }
     r = getattr(requests, method)(f"{SUPABASE_URL}/rest/v1/{path}", headers=headers, **kwargs)
+    # Fail loudly instead of silently swallowing. A bad key, expired token, or RLS
+    # block used to return {} here — so the agent kept running, published, and
+    # exited 0 while nothing reached Supabase. Surface it instead.
+    if r.status_code >= 400:
+        raise RuntimeError(
+            f"Supabase {method.upper()} /{path} failed [{r.status_code}]: {r.text[:300]}"
+        )
+    if r.status_code == 204 or not r.text:
+        return []
     try:    return r.json()
-    except: return {}
+    except: return r.text
 
 def get_published_topics():
     rows = sb("get", "articles", params={"status": "eq.published", "select": "keyword,title", "limit": "500"})
@@ -271,12 +285,16 @@ def get_published_topics():
     return topics
 
 def get_cached_competitor_topics():
-    rows = sb("get", "agent_runs", params={
-        "agent_name": "eq.Firecrawl Scraper",
-        "status": "eq.completed",
-        "order": "completed_at.desc",
-        "limit": "1"
-    })
+    try:
+        rows = sb("get", "agent_runs", params={
+            "agent_name": "eq.Firecrawl Scraper",
+            "status": "eq.completed",
+            "order": "completed_at.desc",
+            "limit": "1"
+        })
+    except Exception as e:
+        print(f"  [warn] competitor cache read failed: {e}")
+        return None, None
     if not isinstance(rows, list) or not rows:
         return None, None
     last_run = rows[0].get("completed_at", "")
@@ -291,23 +309,30 @@ def get_cached_competitor_topics():
     return None, None
 
 def cache_competitor_topics(topics):
-    sb("post", "agent_runs", json={
-        "agent_name":    "Firecrawl Scraper",
-        "status":        "completed",
-        "message":       json.dumps({"topics": topics}),
-        "completed_at":  datetime.datetime.utcnow().isoformat()
-    })
+    try:
+        sb("post", "agent_runs", json={
+            "agent_name":    "Firecrawl Scraper",
+            "status":        "completed",
+            "message":       json.dumps({"topics": topics}),
+            "completed_at":  datetime.datetime.utcnow().isoformat()
+        })
+    except Exception as e:
+        print(f"  [warn] competitor cache write failed: {e}")
 
 def log_run(status, message, articles=0, errors=None, duration=None):
-    sb("post", "agent_runs", json={
-        "agent_name":         "Content Agent v5",
-        "status":             status,
-        "message":            message,
-        "articles_processed": articles,
-        "errors":             errors,
-        "duration_seconds":   duration,
-        "completed_at":       datetime.datetime.utcnow().isoformat()
-    })
+    # Best-effort: a logging failure must never crash a run that already published.
+    try:
+        sb("post", "agent_runs", json={
+            "agent_name":         "Content Agent v5",
+            "status":             status,
+            "message":            message,
+            "articles_processed": articles,
+            "errors":             errors,
+            "duration_seconds":   duration,
+            "completed_at":       datetime.datetime.utcnow().isoformat()
+        })
+    except Exception as e:
+        print(f"  [warn] log_run failed: {e}")
 
 def insert_article(data):
     rows = sb("post", "articles", json=data)
@@ -904,6 +929,20 @@ def run():
     print(f"  FLUX Dev + Firecrawl + DataForSEO + Claude Autonomous")
     print(f"{'='*65}")
 
+    # Preflight — confirm Supabase access BEFORE generating or publishing anything.
+    # The agent's dedup memory lives in Supabase (get_published_topics). If we can't
+    # reach it, abort loudly here rather than publish near-duplicate articles to the
+    # live blog with no record of them. This makes a bad SUPABASE_KEY a red workflow.
+    print("\n  Preflight — checking Supabase access...")
+    try:
+        seen = get_published_topics()
+        print(f"    Supabase OK — {len(seen)} published topics visible for dedup")
+    except Exception as e:
+        print(f"\n  FATAL: cannot reach Supabase — aborting before publish.")
+        print(f"  Fix the SUPABASE_KEY GitHub Actions secret (valid service_role key).")
+        print(f"  Detail: {e}")
+        raise
+
     print("\n  Step 0 — Competitive keyword research...")
     keyword, product = pick_best_keyword()
 
@@ -980,8 +1019,12 @@ def run():
 
     except Exception as e:
         print(f"\n  ERROR: {e}")
-        if aid: update_article(aid, {"status": "failed", "keyword": keyword})
-        log_run("failed", str(e), 0, errors=str(e))
+        # Don't let a follow-up Supabase failure mask the original error.
+        try:
+            if aid: update_article(aid, {"status": "failed", "keyword": keyword})
+        except Exception as e2:
+            print(f"  [warn] could not mark article failed: {e2}")
+        log_run("failed", str(e), 0, errors=str(e))  # already best-effort
         raise
 
 if __name__ == "__main__":
