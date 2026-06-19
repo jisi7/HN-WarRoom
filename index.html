@@ -181,6 +181,14 @@ const agentDot = (s) => ({ completed: 'dot-green', running: 'dot-amber', failed:
 
 const fmt = (d) => d ? new Date(d).toLocaleDateString('en-US', { month: 'short', day: 'numeric' }) : '—';
 const fmtTime = (d) => d ? new Date(d).toLocaleString('en-US', { month: 'short', day: 'numeric', hour: 'numeric', minute: '2-digit' }) : 'Never';
+const ago = (d) => {
+  if (!d) return 'never';
+  const s = Math.floor((Date.now() - new Date(d).getTime()) / 1000);
+  if (s < 60) return 'just now';
+  const m = Math.floor(s / 60); if (m < 60) return m + 'm ago';
+  const h = Math.floor(m / 60); if (h < 24) return h + 'h ago';
+  return Math.floor(h / 24) + 'd ago';
+};
 
 function App() {
   const [tab, setTab] = useState('overview');
@@ -195,7 +203,7 @@ function App() {
         db.from('articles').select('*').order('created_at', { ascending: false }).limit(50),
         db.from('keywords').select('*').order('priority').order('created_at'),
         db.from('social_drafts').select('*, articles(title)').order('created_at', { ascending: false }).limit(20),
-        db.from('agent_runs').select('*').order('created_at', { ascending: false }).limit(20),
+        db.from('agent_runs').select('*').order('created_at', { ascending: false }).limit(40),
         db.from('performance').select('*, articles(title, product)').order('date', { ascending: false }).limit(30),
       ]);
       setData({
@@ -217,13 +225,32 @@ function App() {
   const pendingDrafts = data.drafts.filter(d => d.status === 'pending').length;
   const totalTraffic = data.performance.reduce((s, p) => s + (p.organic_traffic || 0), 0);
 
-  // Derive last agent run per agent type
-  const agentTypes = ['Content Agent', 'Keyword Agent', 'Repurpose Agent', 'Optimization Agent'];
-  const agentStatus = agentTypes.map(name => {
-    const runs = data.agents.filter(a => a.agent_name === name);
-    const last = runs[0];
-    return { name, last, status: last ? last.status : (name === 'Optimization Agent' ? 'waiting' : 'ready') };
+  // SITREP — what each real agent has actually done. Note the content agent logs
+  // as "Content Agent v5" (older runs: v4 / "Content Agent"), so we match on a list
+  // of names rather than one. There is no separate Keyword Agent — the content
+  // agent does its own keyword research via the Firecrawl scraper.
+  const AGENT_DEFS = [
+    { key: 'content',   label: 'Content Agent',    match: ['Content Agent v5','Content Agent v4','Content Agent'], desc: 'Researches a keyword gap, writes a research article, and publishes it to the blog (runs daily).' },
+    { key: 'repurpose', label: 'Repurpose Agent',  match: ['Repurpose Agent'], desc: 'Turns each new article into social posts — Publer drafts for FB / IG / Threads, TikTok & YouTube assets to Drive (Tue & Fri).' },
+    { key: 'scraper',   label: 'Firecrawl Scraper', match: ['Firecrawl Scraper'], desc: 'Scrapes competitor sites for fresh topic ideas; results cached for the content agent (~weekly).' },
+  ];
+  const sitrep = AGENT_DEFS.map(def => {
+    const last = data.agents.find(a => def.match.includes(a.agent_name));
+    let summary = 'No runs recorded yet.';
+    if (last) {
+      if (def.key === 'scraper') {
+        let n = 0;
+        try { n = (JSON.parse(last.message || '{}').topics || []).length; } catch(e) {}
+        summary = n ? `Cached ${n} competitor topics.` : 'Scrape completed.';
+      } else {
+        summary = last.message || `Last run: ${last.status}.`;
+      }
+    }
+    return { ...def, last, summary, status: last ? last.status : 'waiting' };
   });
+  const lastArticleRun = sitrep.find(s => s.key === 'content')?.last;
+  const lastScrapeRun  = sitrep.find(s => s.key === 'scraper')?.last;
+  const lastRepurpose  = sitrep.find(s => s.key === 'repurpose')?.last;
 
   // Product breakdown
   const productCounts = { creatine: 0, focase: 0, vitamin_d: 0 };
@@ -284,17 +311,29 @@ function App() {
         {tab === 'overview' && (
           <>
             <div className="grid-2">
-              {/* Agent Status */}
+              {/* SITREP — what each agent has done */}
               <div className="panel">
-                <div className="panel-head"><span className="panel-title">Agent Status</span></div>
+                <div className="panel-head">
+                  <span className="panel-title">SITREP — Agent Activity</span>
+                  <span style={{fontSize:'10px',color:'var(--charcoal-light)',textTransform:'uppercase',letterSpacing:'0.06em'}}>
+                    last article {ago(lastArticleRun?.completed_at || lastArticleRun?.created_at)} · scrape {ago(lastScrapeRun?.completed_at || lastScrapeRun?.created_at)}
+                  </span>
+                </div>
                 <div className="panel-body">
-                  {agentStatus.map(a => (
-                    <div className="agent-row" key={a.name}>
-                      <div className={`agent-dot ${agentDot(a.status)}`}/>
-                      <span className="agent-name">{a.name}</span>
-                      <div className="agent-meta">
-                        {a.last ? fmtTime(a.last.created_at) : (a.name === 'Optimization Agent' ? 'needs 60d data' : 'not yet run')}
-                        {a.last && <><br/><span style={{color: a.status==='completed'?'#048142':a.status==='failed'?'#D2042D':'#C8893A'}}>{a.status}</span></>}
+                  {sitrep.map(s => (
+                    <div className="agent-row" key={s.key} style={{alignItems:'flex-start',gap:'10px'}}>
+                      <div className={`agent-dot ${agentDot(s.status)}`} style={{marginTop:'5px',flexShrink:0}}/>
+                      <div style={{flex:1,minWidth:0}}>
+                        <div style={{display:'flex',justifyContent:'space-between',gap:'8px',alignItems:'baseline'}}>
+                          <span className="agent-name">{s.label}</span>
+                          <span style={{fontSize:'11px',color:'var(--charcoal-light)',whiteSpace:'nowrap'}}>
+                            {s.last ? ago(s.last.completed_at || s.last.created_at) : 'never run'}
+                          </span>
+                        </div>
+                        <div style={{fontSize:'12px',color:'var(--charcoal)',margin:'3px 0',lineHeight:1.45,overflow:'hidden',textOverflow:'ellipsis'}}>
+                          {s.summary}
+                        </div>
+                        <div style={{fontSize:'11px',color:'var(--charcoal-light)',lineHeight:1.45}}>{s.desc}</div>
                       </div>
                     </div>
                   ))}
