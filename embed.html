@@ -155,7 +155,7 @@ body {
 .lib-wrap {
   max-width: 860px;
   margin: 0 auto;
-  padding: 0 24px 80px;
+  padding: 0 24px 24px;
 }
 
 .search-row {
@@ -229,6 +229,7 @@ body {
 .stat-label { font-size: 10px; color: #9a9590; text-transform: uppercase; letter-spacing: 0.06em; }
 
 .category-section { margin-bottom: 36px; }
+.category-section:last-child { margin-bottom: 0; }
 
 .category-header {
   display: flex;
@@ -346,7 +347,7 @@ body {
   .articles-grid { grid-template-columns: 1fr; }
   .filter-btn { padding: 7px 10px; font-size: 11px; }
   .search-row { gap: 6px; }
-  .lib-wrap { padding: 0 16px 80px; }
+  .lib-wrap { padding: 0 16px 24px; }
 }
 </style>
 </head>
@@ -591,7 +592,15 @@ function animateCards() {
 }
 
 function postHeight() {
-  const h = Math.max(document.body.scrollHeight, document.documentElement.scrollHeight);
+  // Measure the true bottom of rendered content rather than
+  // documentElement.scrollHeight, which over-reports and leaves dead space
+  // below the iframe (the "ton of space at the bottom" bug).
+  let h = 0;
+  for (const el of document.body.children) {
+    const b = el.getBoundingClientRect().bottom;
+    if (b > h) h = b;
+  }
+  h = Math.ceil(h + window.scrollY) || document.body.scrollHeight;
   window.parent.postMessage({ type: 'hn-library-height', height: h }, '*');
 }
 
