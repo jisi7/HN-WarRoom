@@ -284,6 +284,40 @@ def get_published_topics():
         if r.get("title"):   topics.append(r["title"].lower().strip())
     return topics
 
+def get_product_performance():
+    """Per-product score multiplier from real GA4 results (the `performance` table,
+    populated by analytics_agent.py). Sales-weighted: revenue and conversions count
+    most, engagement second. Returns {} when there's no data yet, so this is a safe
+    no-op until analytics starts flowing. Best product gets ~1.35x, others scale down
+    toward 1.0 — a deliberate nudge toward what converts, not a hard override."""
+    MAX_BOOST = 1.35
+    try:
+        rows = sb("get", "performance", params={
+            "select": "engagement_rate,conversions,revenue,articles(product)", "limit": "5000"})
+    except Exception as e:
+        print(f"  [warn] performance read failed (no boost applied): {e}")
+        return {}
+    if not isinstance(rows, list) or not rows:
+        return {}
+    agg = {}
+    for r in rows:
+        prod = (r.get("articles") or {}).get("product")
+        if not prod:
+            continue
+        a = agg.setdefault(prod, {"rev": 0.0, "conv": 0.0, "eng": 0.0, "n": 0})
+        a["rev"]  += float(r.get("revenue") or 0)
+        a["conv"] += float(r.get("conversions") or 0)
+        a["eng"]  += float(r.get("engagement_rate") or 0)
+        a["n"]    += 1
+    signal = {p: a["rev"] * 1.0 + a["conv"] * 25.0 + (a["eng"] / a["n"] if a["n"] else 0) * 50.0
+              for p, a in agg.items()}
+    if not signal:
+        return {}
+    lo, hi = min(signal.values()), max(signal.values())
+    if hi <= lo:
+        return {}
+    return {p: 1.0 + (s - lo) / (hi - lo) * (MAX_BOOST - 1.0) for p, s in signal.items()}
+
 def get_cached_competitor_topics():
     try:
         rows = sb("get", "agent_runs", params={
@@ -452,6 +486,12 @@ def pick_best_keyword():
     published = get_published_topics()
     print(f"  [Keyword] {len(published)} topics already published")
 
+    perf_boost = get_product_performance()
+    if perf_boost:
+        ranked = sorted(perf_boost.items(), key=lambda kv: kv[1], reverse=True)
+        print("  [Keyword] Performance boost by product: " +
+              ", ".join(f"{p}×{b:.2f}" for p, b in ranked))
+
     competitor_topics, cache_age = get_cached_competitor_topics()
     if competitor_topics:
         print(f"  [Keyword] Using cached competitor data ({cache_age} days old, {len(competitor_topics)} topics)")
@@ -486,6 +526,8 @@ def pick_best_keyword():
         score = (vol * 0.4) + (cpc * 100) + ((100 - comp) * 10)
         if c["product"] in ["focase", "creatine", "vitamin_d"]:
             score *= 1.3
+        # Nudge toward products that actually convert (from GA4 performance data).
+        score *= perf_boost.get(c["product"], 1.0)
         scored.append({**c, "volume": vol, "competition": comp, "cpc": cpc, "score": score})
 
     scored.sort(key=lambda x: x["score"], reverse=True)

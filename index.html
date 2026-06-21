@@ -212,7 +212,7 @@ function App() {
         db.from('keywords').select('*').order('priority').order('created_at'),
         db.from('social_drafts').select('*, articles(title)').order('created_at', { ascending: false }).limit(20),
         db.from('agent_runs').select('*').order('created_at', { ascending: false }).limit(40),
-        db.from('performance').select('*, articles(title, product)').order('date', { ascending: false }).limit(30),
+        db.from('performance').select('*, articles(title, product)').order('date', { ascending: false }).limit(500),
       ]);
       setData({
         articles: art.data || [],
@@ -290,7 +290,7 @@ function App() {
       <div className="main">
 
         <div className="tab-bar">
-          {['overview','content','keywords','social','agents'].map(t => (
+          {['overview','content','keywords','social','performance','agents'].map(t => (
             <button key={t} className={`tab${tab===t?' active':''}`} onClick={() => setTab(t)}>
               {t.charAt(0).toUpperCase()+t.slice(1)}
             </button>
@@ -475,6 +475,47 @@ function App() {
             </div>
           </div>
         )}
+
+        {tab === 'performance' && (() => {
+          // performance has one row per article per day — keep the latest per article.
+          const latest = {};
+          data.performance.forEach(p => {
+            if (!p.article_id) return;
+            if (!latest[p.article_id] || (p.date || '') > (latest[p.article_id].date || '')) latest[p.article_id] = p;
+          });
+          const rows = Object.values(latest).sort((a, b) => (b.organic_traffic || 0) - (a.organic_traffic || 0));
+          const tViews = rows.reduce((s, p) => s + (p.organic_traffic || 0), 0);
+          const tConv  = rows.reduce((s, p) => s + (p.conversions || 0), 0);
+          const tRev   = rows.reduce((s, p) => s + (p.revenue || 0), 0);
+          return (
+            <div className="grid-full panel">
+              <div className="panel-head">
+                <span className="panel-title">Article Performance</span>
+                <span style={{fontSize:'11px',color:'var(--charcoal-light)'}}>
+                  {rows.length ? `${tViews.toLocaleString()} views · ${tConv} conversions · $${tRev.toLocaleString()}` : 'awaiting analytics'}
+                </span>
+              </div>
+              <div className="panel-body">
+                {loading ? <div className="loading"><div className="spinner"/><span>Loading...</span></div>
+                : rows.length === 0
+                ? <div className="panel-empty">No analytics yet. Once the Analytics Agent runs (needs the GA4 secrets), each article's traffic, conversions, and revenue appear here — ranked by what's working.</div>
+                : rows.map((p, i) => (
+                  <div className="t-row" key={p.id || i}>
+                    <span className="kw-num">{i+1}</span>
+                    <div className="t-row-main">
+                      <div className="t-row-title">{p.articles?.title || 'Untitled'}</div>
+                      <div className="t-row-sub">
+                        {(p.organic_traffic || 0).toLocaleString()} views · {p.conversions || 0} conv · ${(p.revenue || 0).toLocaleString()}
+                        {p.engagement_rate ? ` · ${Math.round(p.engagement_rate * 100)}% engaged` : ''}
+                      </div>
+                    </div>
+                    {p.articles?.product && <span className={`pill ${productPill(p.articles.product)}`}>{productLabel(p.articles.product)}</span>}
+                  </div>
+                ))}
+              </div>
+            </div>
+          );
+        })()}
 
         {tab === 'agents' && (
           <>
