@@ -159,6 +159,14 @@
     .metrics-row { grid-template-columns: repeat(2, 1fr); }
     .grid-2, .grid-3 { grid-template-columns: 1fr; }
     .header { padding: 0 16px; }
+    /* Let article titles wrap to 2 lines on phones instead of single-line ellipsis,
+       so they're actually readable. */
+    .t-row-title {
+      white-space: normal;
+      display: -webkit-box;
+      -webkit-line-clamp: 2;
+      -webkit-box-orient: vertical;
+    }
   }
 </style>
 </head>
@@ -224,6 +232,11 @@ function App() {
   const queued = data.keywords.filter(k => k.status === 'queued').length;
   const pendingDrafts = data.drafts.filter(d => d.status === 'pending').length;
   const totalTraffic = data.performance.reduce((s, p) => s + (p.organic_traffic || 0), 0);
+  // Momentum: articles published in the last 7 days (used until analytics is wired up).
+  const weekAgo = Date.now() - 7 * 24 * 60 * 60 * 1000;
+  const publishedThisWeek = data.articles.filter(a =>
+    a.status === 'published' && new Date(a.published_at || a.created_at).getTime() >= weekAgo
+  ).length;
 
   // SITREP — what each real agent has actually done. Note the content agent logs
   // as "Content Agent v5" (older runs: v4 / "Content Agent"), so we match on a list
@@ -302,9 +315,9 @@ function App() {
             <div className="metric-sub">awaiting approval</div>
           </div>
           <div className="metric-card mc-amber">
-            <div className="metric-label">Organic Traffic</div>
-            <div className="metric-value">{totalTraffic > 0 ? totalTraffic.toLocaleString() : '—'}</div>
-            <div className="metric-sub">total tracked visits</div>
+            <div className="metric-label">{totalTraffic > 0 ? 'Organic Traffic' : 'Published This Week'}</div>
+            <div className="metric-value">{totalTraffic > 0 ? totalTraffic.toLocaleString() : publishedThisWeek}</div>
+            <div className="metric-sub">{totalTraffic > 0 ? 'total tracked visits' : 'last 7 days'}</div>
           </div>
         </div>
 
