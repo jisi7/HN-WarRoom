@@ -491,13 +491,25 @@ function updateStats() {
   document.getElementById('lon-count').textContent   = all.filter(a => cat(a) === 'Foundational Health and Longevity').length;
 }
 
+function shortTitle(t) {
+  // Library browsers are already on-site (not being SEO'd), so show the clean topic
+  // instead of the long search-optimized title. Most titles are "Topic: SEO subtitle"
+  // — the part before the colon is the readable topic.
+  if (!t) return 'Untitled';
+  let s = t.split(':')[0].trim();
+  if (s.length < 18)        s = t.length > 52 ? t.slice(0, 50).trim() + '…' : t;
+  else if (s.length > 58)   s = s.slice(0, 56).trim() + '…';
+  return s;
+}
+
 function cardHtml(a, cfg) {
   const url   = a.shopify_url || '#';
   const title = a.title || 'Untitled';
   const date  = fmt(a.published_at);
-  return '<a href="' + url + '" target="_blank" class="article-card" style="border-bottom-color:' + cfg.color + '">'
+  const attr  = title.replace(/"/g, '&quot;');
+  return '<a href="' + url + '" target="_blank" title="' + attr + '" class="article-card" style="border-bottom-color:' + cfg.color + '">'
     + '<div class="card-date">' + date + '</div>'
-    + '<div class="card-title">' + title + '</div>'
+    + '<div class="card-title">' + shortTitle(title) + '</div>'
     + '<div class="card-footer">'
     + '<span class="card-badge" style="background:' + cfg.color + '">' + cfg.label + '</span>'
     + '<span class="card-arrow">&#x2192;</span>'
