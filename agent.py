@@ -415,6 +415,37 @@ def get_search_volumes(keywords):
         return {}
 
 # ── KEYWORD SELECTION ─────────────────────────────────────────────────────────
+# ── TOPIC DEDUP ───────────────────────────────────────────────────────────────
+# Generic SEO/filler words to ignore when comparing topics, so "Alpha-GPC ...
+# Clinical Review" and "Alpha-GPC ... Evidence-Based Guidelines" are recognized
+# as the SAME topic (they share the meaningful tokens alpha/gpc/cognitive/dosing).
+_STOP = {
+    "the","and","for","with","without","what","how","why","best","top","your","you","are","that","this",
+    "vs","versus","than","from","into","based","evidence","clinical","complete","comprehensive",
+    "research","studies","study","analysis","review","protocol","protocols","science","scientific",
+    "explained","actually","shows","guidelines","comparing","comparison","overview","ultimate","guide",
+}
+
+def _topic_tokens(text):
+    return {w for w in re.findall(r"[a-z0-9]+", (text or "").lower())
+            if len(w) > 2 and w not in _STOP}
+
+def _is_dup_topic(candidate, published_texts):
+    """True if `candidate` covers essentially the same subject as something already
+    published. Compares meaningful-token overlap rather than exact substrings, which
+    is what let near-identical titles slip through before."""
+    c = _topic_tokens(candidate)
+    if not c:
+        return False
+    for p in published_texts:
+        pt = _topic_tokens(p)
+        if not pt:
+            continue
+        shared = c & pt
+        if len(shared) >= 3 or (len(shared) >= 2 and len(shared) / min(len(c), len(pt)) >= 0.66):
+            return True
+    return False
+
 def pick_best_keyword():
     print("\n  [Keyword] Starting competitive keyword research...")
 
@@ -433,15 +464,15 @@ def pick_best_keyword():
     candidates = []
     for product, keywords in SEED_KEYWORDS.items():
         for kw in keywords:
-            already_done = any(kw.lower() in pub or pub in kw.lower() for pub in published)
-            if not already_done:
+            if not _is_dup_topic(kw, published):
                 candidates.append({"keyword": kw, "product": product})
 
     if not candidates:
-        print("  [Keyword] All seeds covered — generating fresh keywords...")
-        candidates = generate_fresh_keywords(published)
+        print("  [Keyword] All seed topics covered — generating fresh keywords...")
+        fresh = generate_fresh_keywords(published)
+        candidates = [c for c in fresh if not _is_dup_topic(c.get("keyword", ""), published)]
 
-    print(f"  [Keyword] {len(candidates)} candidates available")
+    print(f"  [Keyword] {len(candidates)} non-duplicate candidates available")
 
     volumes = get_search_volumes([c["keyword"] for c in candidates[:50]])
 
@@ -473,7 +504,7 @@ def pick_best_keyword():
         for c in top_candidates
     )
 
-    published_sample = "\n".join(f"- {p}" for p in published[:20])
+    published_sample = "\n".join(f"- {p}" for p in published[:60])
 
     msg = client.messages.create(
         model="claude-sonnet-4-5",
@@ -486,7 +517,8 @@ def pick_best_keyword():
 Brand: closest thing in supplements to a biotech research institution.
 Audience: biohackers, athletes, health-conscious professionals 30-55.
 
-Already published (do NOT repeat):
+Already published — do NOT pick anything on the same TOPIC as any of these
+(even with different wording, angle, or sub-title — we want a genuinely new subject):
 {published_sample}
 
 Top candidates:
@@ -503,15 +535,33 @@ Return ONLY JSON:
     raw = msg.content[0].text.strip()
     raw = re.sub(r'^```[a-z]*\n?', '', raw)
     raw = re.sub(r'\n?```$', '', raw)
+    def first_fresh():
+        """Highest-scored candidate whose topic isn't already published."""
+        for c in scored:
+            if not _is_dup_topic(c["keyword"], published):
+                return c["keyword"], c["product"]
+        return None
+
     try:
         result  = json.loads(raw.strip())
         kw      = result["keyword"]
         product = result["product"]
+        # Guard: if Claude still picked a near-duplicate of a published article,
+        # override it with the best genuinely-new candidate.
+        if _is_dup_topic(kw, published):
+            alt = first_fresh()
+            if alt:
+                print(f"  [Keyword] '{kw}' duplicates a published topic — overriding with '{alt[0]}'")
+                return alt
+            print(f"  [Keyword] '{kw}' looks duplicate but no fresh alternative found — proceeding")
         print(f"  [Keyword] Selected: '{kw}' ({product})")
         print(f"  [Keyword] Reasoning: {result.get('reasoning', '')}")
         return kw, product
     except Exception as e:
-        print(f"  [Keyword] Parse error: {e} — using top scored")
+        print(f"  [Keyword] Parse error: {e} — using best fresh scored candidate")
+        alt = first_fresh()
+        if alt:
+            return alt
         top = scored[0] if scored else {"keyword": "creatine monohydrate benefits", "product": "creatine"}
         return top["keyword"], top["product"]
 
