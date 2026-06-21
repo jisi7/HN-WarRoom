@@ -492,14 +492,15 @@ function updateStats() {
 }
 
 function shortTitle(t) {
-  // Library browsers are already on-site (not being SEO'd), so show the clean topic
-  // instead of the long search-optimized title. Most titles are "Topic: SEO subtitle"
-  // — the part before the colon is the readable topic.
+  // Library browsers are already on-site (not being SEO'd), so trim the long
+  // search-optimized titles to a readable middle length — keep the topic plus the
+  // start of the subtitle, cut at a word boundary, full title stays on hover.
   if (!t) return 'Untitled';
-  let s = t.split(':')[0].trim();
-  if (s.length < 18)        s = t.length > 52 ? t.slice(0, 50).trim() + '…' : t;
-  else if (s.length > 58)   s = s.slice(0, 56).trim() + '…';
-  return s;
+  if (t.length <= 56) return t;
+  let s = t.slice(0, 56);
+  const sp = s.lastIndexOf(' ');
+  if (sp > 32) s = s.slice(0, sp);
+  return s.replace(/[\s:,.;–-]+$/, '') + '…';
 }
 
 function cardHtml(a, cfg) {
