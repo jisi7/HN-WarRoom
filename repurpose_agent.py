@@ -39,6 +39,11 @@ PRODUCT_MAP = {
 
 # ── SUPABASE ─────────────────────────────────────────────────────────────────
 def sb(method, path, **kwargs):
+    if not SUPABASE_KEY:
+        raise RuntimeError(
+            "SUPABASE_KEY is empty — set the GitHub Actions secret to a valid "
+            "Supabase service_role / secret key."
+        )
     headers = {
         "apikey": SUPABASE_KEY,
         "Authorization": f"Bearer {SUPABASE_KEY}",
@@ -46,8 +51,15 @@ def sb(method, path, **kwargs):
         "Prefer": "return=representation"
     }
     r = getattr(requests, method)(f"{SUPABASE_URL}/rest/v1/{path}", headers=headers, **kwargs)
+    # Fail loudly instead of swallowing — a bad key / RLS / schema error must surface.
+    if r.status_code >= 400:
+        raise RuntimeError(
+            f"Supabase {method.upper()} /{path} failed [{r.status_code}]: {r.text[:300]}"
+        )
+    if r.status_code == 204 or not r.text:
+        return []
     try: return r.json()
-    except: return {}
+    except: return r.text
 
 def get_latest_published_article():
     """Get the most recently published article that hasn't been repurposed yet."""
@@ -70,25 +82,64 @@ def get_latest_published_article():
     return article
 
 def log_social_draft(article_id, platform, content_type, content, status="pending", scheduled_at=None):
-    sb("post", "social_drafts", json={
-        "article_id":   article_id,
-        "platform":     platform,
-        "content_type": content_type,
-        "content":      content,
-        "status":       status,
-        "scheduled_at": scheduled_at
-    })
+    # Best-effort: recording a draft for the dashboard must not crash a run that
+    # already generated + sent the content to Zapier. Returns True on success.
+    try:
+        sb("post", "social_drafts", json={
+            "article_id":   article_id,
+            "platform":     platform,
+            "content_type": content_type,
+            "content":      content,
+            "status":       status,
+            "scheduled_at": scheduled_at
+        })
+        return True
+    except Exception as e:
+        print(f"  [warn] social_drafts write failed ({platform}): {e}")
+        return False
+
+def record_social_drafts(article, assets):
+    """Write one social_drafts row per platform so the dashboard Social tab shows
+    what was produced — and so the next run's 'already repurposed' check skips
+    this article instead of re-sending duplicate content to Publer."""
+    aid = article.get("id")
+    if not aid:
+        print("  [warn] article has no id — cannot record social drafts")
+        return 0
+    ig = assets.get("instagram_carousel", {})
+    fb = assets.get("facebook_post", {})
+    th = assets.get("threads_post", {})
+    tk = assets.get("tiktok_scripts", []) or []
+    yt = assets.get("youtube_script", {})
+    tw = assets.get("x_thread", []) or []
+    rows = [
+        ("instagram", "carousel", ig.get("caption", "")),
+        ("facebook",  "post",     fb.get("text", "")),
+        ("threads",   "post",     th.get("text", "")),
+        ("tiktok",    "script",   f"{len(tk)} TikTok scripts generated"),
+        ("youtube",   "script",   yt.get("title", "")),
+        ("x",         "thread",   f"{len(tw)}-tweet thread"),
+    ]
+    n = 0
+    for platform, ctype, content in rows:
+        if log_social_draft(aid, platform, ctype, (content or "")[:5000]):
+            n += 1
+    return n
 
 def log_agent_run(status, message, articles=0, errors=None, duration=None):
-    sb("post", "agent_runs", json={
-        "agent_name": "Repurpose Agent",
-        "status": status,
-        "message": message,
-        "articles_processed": articles,
-        "errors": errors,
-        "duration_seconds": duration,
-        "completed_at": datetime.datetime.utcnow().isoformat()
-    })
+    # Best-effort: a logging failure must never crash a run that already completed.
+    try:
+        sb("post", "agent_runs", json={
+            "agent_name": "Repurpose Agent",
+            "status": status,
+            "message": message,
+            "articles_processed": articles,
+            "errors": errors,
+            "duration_seconds": duration,
+            "completed_at": datetime.datetime.utcnow().isoformat()
+        })
+    except Exception as e:
+        print(f"  [warn] log_agent_run failed: {e}")
 
 # ── CONTENT GENERATION ───────────────────────────────────────────────────────
 REPURPOSE_SYSTEM = """You are the content repurposing specialist for Holistic Nutrition — a science-driven supplement company.
@@ -332,16 +383,22 @@ def run():
         print(f"    ✓ X thread: {len(assets.get('x_thread', []))} tweets")
 
         # 2. Send everything to Zapier
-        print("\n  Step 2/2 — Sending to Zapier...")
+        print("\n  Step 2/3 — Sending to Zapier...")
         success = send_to_zapier(article, assets)
 
+        # 3. Record drafts in Supabase (dashboard visibility + dedup for next run)
+        print("\n  Step 3/3 — Recording social drafts...")
+        drafts_written = record_social_drafts(article, assets)
+        print(f"    ✓ Recorded {drafts_written} platform drafts")
+
         duration = int((datetime.datetime.utcnow() - start).total_seconds())
-        log_agent_run("completed", f"Repurposed: {title}", 1, duration=duration)
+        log_agent_run("completed", f"Repurposed: {title} ({drafts_written} drafts)", 1, duration=duration)
 
         print(f"\n{'='*65}")
         print(f"  ✓ DONE — {title}")
         print(f"  Duration : {duration}s")
         print(f"  Zapier   : {'✓ sent' if success else '✗ failed'}")
+        print(f"  Drafts   : {drafts_written} recorded")
         print(f"{'='*65}\n")
 
     except Exception as e:
