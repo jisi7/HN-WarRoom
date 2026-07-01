@@ -461,8 +461,17 @@ _STOP = {
 }
 
 def _topic_tokens(text):
-    return {w for w in re.findall(r"[a-z0-9]+", (text or "").lower())
-            if len(w) > 2 and w not in _STOP}
+    # Keep normal words (>2 chars) AND short alphanumeric supplement codes like
+    # d3, d2, k2, b6, b12, q10 — dropping these blinded dedup to the difference
+    # between "Vitamin D3 vs D2" and every reworded clone of it (8 shipped in a row
+    # before this fix), since after stopwords the only shared word was "vitamin".
+    toks = set()
+    for w in re.findall(r"[a-z0-9]+", (text or "").lower()):
+        if w in _STOP:
+            continue
+        if len(w) > 2 or any(ch.isdigit() for ch in w):
+            toks.add(w)
+    return toks
 
 def _is_dup_topic(candidate, published_texts):
     """True if `candidate` covers essentially the same subject as something already
