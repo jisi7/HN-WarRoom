@@ -284,6 +284,25 @@ def get_published_topics():
         if r.get("title"):   topics.append(r["title"].lower().strip())
     return topics
 
+def get_recent_product_streak():
+    """How many consecutive most-recent articles used the same product.
+    Used to force rotation — the agent once published 12 straight vitamin_d
+    articles because nothing penalized camping on one product."""
+    try:
+        rows = sb("get", "articles", params={
+            "status": "eq.published", "select": "product",
+            "order": "created_at.desc", "limit": "10"})
+    except Exception:
+        return None, 0
+    if not isinstance(rows, list) or not rows:
+        return None, 0
+    last = rows[0].get("product")
+    streak = 0
+    for r in rows:
+        if r.get("product") == last: streak += 1
+        else: break
+    return last, streak
+
 def get_product_performance():
     """Per-product score multiplier from real GA4 results (the `performance` table,
     populated by analytics_agent.py). Sales-weighted: revenue and conversions count
@@ -501,6 +520,13 @@ def pick_best_keyword():
         print("  [Keyword] Performance boost by product: " +
               ", ".join(f"{p}×{b:.2f}" for p, b in ranked))
 
+    # Product rotation: escalating penalty on the product used in the most recent
+    # article(s). 1 repeat is fine; a streak gets expensive fast (0.65^streak).
+    streak_product, streak = get_recent_product_streak()
+    rotation_penalty = 0.65 ** streak if streak_product else 1.0
+    if streak_product and streak >= 1:
+        print(f"  [Keyword] Rotation: last {streak} article(s) were {streak_product} — ×{rotation_penalty:.2f} penalty applied")
+
     competitor_topics, cache_age = get_cached_competitor_topics()
     if competitor_topics:
         print(f"  [Keyword] Using cached competitor data ({cache_age} days old, {len(competitor_topics)} topics)")
@@ -537,6 +563,8 @@ def pick_best_keyword():
             score *= 1.3
         # Nudge toward products that actually convert (from GA4 performance data).
         score *= perf_boost.get(c["product"], 1.0)
+        if c["product"] == streak_product:
+            score *= rotation_penalty
         scored.append({**c, "volume": vol, "competition": comp, "cpc": cpc, "score": score})
 
     scored.sort(key=lambda x: x["score"], reverse=True)
@@ -578,6 +606,7 @@ Top candidates:
 {competitor_summary}
 
 Pick the single best keyword for today. Consider commercial intent, volume vs competition, topic clusters, and month: {datetime.datetime.utcnow().strftime('%B %Y')}.
+{f"ROTATION: the last {streak} article(s) were all {streak_product} — pick a DIFFERENT product today unless nothing else is viable." if streak_product and streak >= 2 else ""}
 
 Return ONLY JSON:
 {{"keyword": "exact keyword", "product": "creatine|focase|vitamin_d|general", "reasoning": "one sentence", "estimated_monthly_searches": 0}}"""}]
