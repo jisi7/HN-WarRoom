@@ -130,6 +130,32 @@ def _parse_report(resp, metric_names):
 def slug_of(url):
     return (url or "").rstrip("/").split("/")[-1].lower()
 
+
+def reconcile_deleted_articles(articles):
+    """Archive Supabase rows whose Shopify blog post no longer exists (deleted in
+    admin), so the research library and dashboard adjust automatically instead of
+    showing 404 links. Only archives on a definitive 404/410 — network errors or
+    5xx leave the row untouched."""
+    archived = 0
+    for a in articles:
+        url = a.get("shopify_url")
+        if not url:
+            continue
+        try:
+            r = requests.head(url, allow_redirects=True, timeout=15)
+            code = r.status_code
+        except Exception:
+            continue
+        if code in (404, 410):
+            try:
+                sb("patch", f"articles?id=eq.{a['id']}", prefer="return=minimal",
+                   json={"status": "archived"})
+                archived += 1
+                print(f"  [reconcile] archived (404): {(a.get('title') or '')[:60]}")
+            except Exception as e:
+                print(f"  [reconcile] failed to archive {a['id']}: {e}")
+    return archived
+
 # ── MAIN ──────────────────────────────────────────────────────────────────────
 def run():
     start = datetime.datetime.utcnow()
@@ -144,6 +170,10 @@ def run():
         articles = []
     by_slug = {slug_of(a.get("shopify_url")): a for a in articles if a.get("shopify_url")}
     print(f"  {len(by_slug)} published articles to match against GA4")
+
+    print("  Reconciling library against live blog (archiving deleted posts)...")
+    n_archived = reconcile_deleted_articles(articles)
+    print(f"  {n_archived} stale article(s) archived")
 
     try:
         client  = ga_client()
